@@ -9,6 +9,7 @@ use yew::prelude::*;
 #[path = "./components/main_view.rs"]
 mod main_view;
 
+/***** App *****/
 #[function_component(App)]
 pub fn app() -> Html {
     html! {
