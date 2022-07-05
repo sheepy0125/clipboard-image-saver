@@ -1,9 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-pink-700">
+<html lang="en" class="bg-gray-800">
 	<head>
 		<meta charset="utf-8" />
 		<title>Image Clipboard Saver</title>
+
 		<link data-trunk rel="css" href="tailwind-yew-builder/output/tailwind.css" />
+		<style>
+			.checkerboard {
+				background: conic-gradient(
+					rgba(0, 0, 0, 0.0125) 90deg,
+					rgba(255, 255, 255, 0.0125) 90deg 180deg,
+					rgba(0, 0, 0, 0.0125) 180deg 270deg,
+					rgba(255, 255, 255, 0.0125) 270deg
+				);
+				background-repeat: repeat;
+				background-size: 60px 60px;
+				background-position: top left;
+			}
+		</style>
 	</head>
 	<body>
 		<!-- Hello there. -->

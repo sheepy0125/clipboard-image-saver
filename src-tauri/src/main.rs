@@ -51,11 +51,11 @@ fn read_clipboard() -> Result<String, String> {
     };
 
     // Write the PNG encoded image data into a vector
-    // The vector must be wrapped in a cursor because the trait `Seek` is needed
-    // But we can get the vector back through `into_inner()`
+    // The vector must be wrapped in a cursor so it satisfies `Seek` and `Read` traits
     let encoded_buf: Vec<u8>;
     let image = DynamicImage::ImageRgba8(image_buf);
     unsafe {
+        CLIPBOARD_PNG_IMAGE_CURSOR.set_position(0);
         image
             .write_to(&mut CLIPBOARD_PNG_IMAGE_CURSOR, ImageOutputFormat::Png) // TODO: different formats
             .unwrap();

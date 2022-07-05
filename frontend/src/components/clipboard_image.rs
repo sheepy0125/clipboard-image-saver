@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 use yew::prelude::*;
+#[path = "./widget.rs"]
+mod widget;
 
 /***** Glue *****/
 #[wasm_bindgen(module = "/glue.js")]
@@ -17,9 +19,37 @@ extern "C" {
     pub async fn read_clipboard() -> Result<JsValue, JsValue>;
 }
 
-/***** Clipboard reader component *****/
-#[function_component(ClipboardReader)]
-pub fn clipboard_reader() -> Html {
+/***** Checkbox grid component *****/
+#[derive(PartialEq, Properties)]
+struct CheckboxGridComponents {
+    children: Children,
+}
+#[function_component(CheckboxGrid)]
+fn checkbox_grid(props: &CheckboxGridComponents) -> Html {
+    html! {
+        <widget::Widget class="h-full checkerboard">
+            { props.children.clone() }
+        </widget::Widget>
+    }
+}
+
+/***** Image display component *****/
+#[derive(PartialEq, Properties)]
+struct ImageDisplayProps {
+    data_url: String,
+}
+#[function_component(ImageDisplay)]
+fn image_display(props: &ImageDisplayProps) -> Html {
+    html! {
+        <CheckboxGrid>
+            <img alt="Image from clipboard" class="border-2 border-white border-opacity-20" src={ props.data_url.clone() } />
+        </CheckboxGrid>
+    }
+}
+
+/***** Clipboard image component *****/
+#[function_component(ClipboardImage)]
+pub fn clipboard_image() -> Html {
     let clipboard = use_state_eq(|| "".to_string());
 
     {
@@ -36,7 +66,11 @@ pub fn clipboard_reader() -> Html {
     let clipboard = (*clipboard).clone();
 
     html! {
-        <img src={ format!("data:image/png;base64,{}", &clipboard) } />
+        if clipboard.is_empty() {
+            <p>{ "Loading" }</p>
+        } else {
+            <ImageDisplay data_url={ format!("data:image/png;base64,{}", &clipboard) } />
+        }
     }
 }
 
@@ -46,9 +80,10 @@ fn update_clipboard(clipboard_state: UseStateHandle<String>) {
         match read_clipboard().await {
             Ok(clipboard_contents) => clipboard_state.set(clipboard_contents.as_string().unwrap()),
             Err(e) => {
-                // Send an alert
-                let window = window().unwrap();
-                window.alert_with_message(&e.as_string().unwrap()).unwrap();
+                window()
+                    .unwrap()
+                    .alert_with_message(&e.as_string().unwrap())
+                    .unwrap();
             }
         }
     })
