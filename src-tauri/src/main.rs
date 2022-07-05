@@ -8,12 +8,20 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
+#![feature(const_io_structs)]
 
 /* Imports */
-use arboard::Clipboard;
-use std::io::Cursor;
 extern crate base64;
+use arboard::Clipboard;
 use image::{DynamicImage, ImageBuffer, ImageOutputFormat, RgbaImage};
+use std::io::Cursor;
+
+/***** Global image cursor *****/
+/* Yes, I'm aware that using a global isn't a good idea in most cases.
+ * But a global seems useful for this case.
+ * Reasoning: When the user wants to save the image, don't fetch it from the clipboard
+ * again if it's already been fetched once. */
+static mut CLIPBOARD_PNG_IMAGE_CURSOR: Cursor<Vec<u8>> = Cursor::new(Vec::new());
 
 /***** Commands *****/
 /// Read the clipboard image information.
@@ -45,15 +53,16 @@ fn read_clipboard() -> Result<String, String> {
     // Write the PNG encoded image data into a vector
     // The vector must be wrapped in a cursor because the trait `Seek` is needed
     // But we can get the vector back through `into_inner()`
-    let mut encoded_buf = Cursor::new(Vec::new());
+    let encoded_buf: Vec<u8>;
     let image = DynamicImage::ImageRgba8(image_buf);
-    image
-        .write_to(&mut encoded_buf, ImageOutputFormat::Png) // TODO: different formats
-        .unwrap();
-    let encoded_data = encoded_buf.into_inner(); // normal Vec<u8>
-
+    unsafe {
+        image
+            .write_to(&mut CLIPBOARD_PNG_IMAGE_CURSOR, ImageOutputFormat::Png) // TODO: different formats
+            .unwrap();
+        encoded_buf = CLIPBOARD_PNG_IMAGE_CURSOR.clone().into_inner();
+    }
     // Convert to base64 to be used as a data URL (e.g. `data:png;base64,{base64_encoded}`)
-    let base64_encoded = base64::encode(encoded_data);
+    let base64_encoded = base64::encode(encoded_buf);
 
     Ok(base64_encoded)
 }
