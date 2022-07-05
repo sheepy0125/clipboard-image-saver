@@ -39,7 +39,7 @@ fn read_clipboard() -> Result<String, String> {
         image_data.bytes.into_owned(),
     ) {
         Some(buf) => buf,
-        None => return Err("Failed to convert the raw bytes into an image reader".to_string()),
+        None => return Err("Failed to convert the raw bytes into an image buffer".to_string()),
     };
 
     // Write the PNG encoded image data into a vector

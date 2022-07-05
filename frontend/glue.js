@@ -8,5 +8,5 @@
 const invoke = window.__TAURI__.invoke;
 
 export async function invokeReadClipboard() {
-    return invoke("read_clipboard", {});
+	return invoke("read_clipboard", {});
 }
