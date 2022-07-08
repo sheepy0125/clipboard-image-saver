@@ -52,6 +52,11 @@ fn image_display(props: &ImageDisplayProps) -> Html {
 pub fn clipboard_image() -> Html {
     let clipboard = use_state_eq(|| "".to_string());
 
+    // Control+V listener
+    let onpaste = {
+        let clipboard = clipboard.clone();
+        Callback::from(move |_| update_clipboard(clipboard.clone()))
+    };
     {
         let clipboard = clipboard.clone();
         use_effect_with_deps(
@@ -66,11 +71,9 @@ pub fn clipboard_image() -> Html {
     let clipboard = (*clipboard).clone();
 
     html! {
-        if clipboard.is_empty() {
-            <p>{ "Loading" }</p>
-        } else {
+        <div onpaste={onpaste} class="h-full">
             <ImageDisplay data_url={ format!("data:image/png;base64,{}", &clipboard) } />
-        }
+        </div>
     }
 }
 

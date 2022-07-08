@@ -3,7 +3,7 @@
  * Created on 2022-07-02
  */
 
-/***** Setup ******/
+/***** Setup *****/
 /* Imports */
 use yew::prelude::*;
 #[path = "./components/main_view.rs"]
@@ -17,7 +17,7 @@ pub fn app() -> Html {
     }
 }
 
-/***** Main ******/
+/***** Main *****/
 fn main() {
     yew::start_app::<App>();
 }
