@@ -17,10 +17,10 @@ mod settings;
 #[function_component(MainView)]
 pub fn main_view() -> Html {
     // Right side collapsed
-    let right_side_collapsed = use_state_eq(|| true);
+    let right_side_collapsed_state = use_state_eq(|| true);
     let on_collapsed_toggle_click = {
-        let right_side_collapsed = right_side_collapsed.clone();
-        Callback::from(move |_| right_side_collapsed.set(!*right_side_collapsed))
+        let right_side_collapsed_state = right_side_collapsed_state.clone();
+        Callback::from(move |_| right_side_collapsed_state.set(!*right_side_collapsed_state))
     };
     html! {
         <div class="flex p-2 min-h-screen">
@@ -32,7 +32,7 @@ pub fn main_view() -> Html {
             <div class={
                 format!(
                     "ml-2 flex-col flex-initial {}",
-                    match *right_side_collapsed {
+                    match *right_side_collapsed_state {
                         false => "hidden",
                         true => "flex"
                     }
@@ -48,7 +48,7 @@ pub fn main_view() -> Html {
             // Collapse
             <button onclick={on_collapsed_toggle_click} class="ml-2 text-white">
                 {
-                    match *right_side_collapsed {
+                    match *right_side_collapsed_state {
                         true => ">",
                         false => "<"
                     }

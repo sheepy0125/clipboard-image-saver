@@ -16,7 +16,7 @@ mod widget;
 #[wasm_bindgen(module = "/glue.js")]
 extern "C" {
     #[wasm_bindgen(js_name = invokeReadClipboard, catch)]
-    pub async fn read_clipboard() -> Result<JsValue, JsValue>;
+    pub async fn read_clipboard_glue() -> Result<JsValue, JsValue>;
 }
 
 /***** Checkbox grid component *****/
@@ -50,29 +50,29 @@ fn image_display(props: &ImageDisplayProps) -> Html {
 /***** Clipboard image component *****/
 #[function_component(ClipboardImage)]
 pub fn clipboard_image() -> Html {
-    let clipboard = use_state_eq(|| "".to_string());
-
-    // Control+V listener
-    let onpaste = {
-        let clipboard = clipboard.clone();
-        Callback::from(move |_| update_clipboard(clipboard.clone()))
-    };
+    let clipboard_state = use_state_eq(|| "".to_string());
     {
-        let clipboard = clipboard.clone();
+        let clipboard_state = clipboard_state.clone();
         use_effect_with_deps(
             move |_| {
-                update_clipboard(clipboard);
+                update_clipboard(clipboard_state);
                 || ()
             },
             (),
         )
     }
 
-    let clipboard = (*clipboard).clone();
+    // Control+V listener
+    let on_paste = {
+        let clipboard_state = clipboard_state.clone();
+        Callback::from(move |_| update_clipboard(clipboard_state.clone()))
+    };
+
+    let clipboard_base64 = format!("{}", *clipboard_state);
 
     html! {
-        <div onpaste={onpaste} class="h-full">
-            <ImageDisplay data_url={ format!("data:image/png;base64,{}", &clipboard) } />
+        <div onpaste={on_paste} class="h-full">
+            <ImageDisplay data_url={ format!("data:image/png;base64,{}", &clipboard_base64) } />
         </div>
     }
 }
@@ -80,7 +80,7 @@ pub fn clipboard_image() -> Html {
 /// Update clipboard state from JavaScript glue
 fn update_clipboard(clipboard_state: UseStateHandle<String>) {
     spawn_local(async move {
-        match read_clipboard().await {
+        match read_clipboard_glue().await {
             Ok(clipboard_contents) => clipboard_state.set(clipboard_contents.as_string().unwrap()),
             Err(e) => {
                 window()
