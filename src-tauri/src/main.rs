@@ -14,7 +14,7 @@
 extern crate base64;
 use arboard::Clipboard;
 use image::{DynamicImage, ImageBuffer, ImageOutputFormat, RgbaImage};
-use std::io::Cursor;
+use std::{fs::write, io::Cursor};
 
 /***** Global image cursor *****/
 /* Yes, I'm aware that using a global isn't a good idea in most cases.
@@ -67,6 +67,26 @@ fn read_clipboard() -> Result<String, String> {
     Ok(base64_encoded)
 }
 
+/// Save the image to a file
+/// If the save was successful, this command will return a Ok(()).
+/// Otherwise, it'll return the error as a String.
+#[tauri::command]
+fn save_image(path: String) -> Result<(), String> {
+    /* TODO: different file formats, right now it's PNG */
+
+    // Get PNG image buffer
+    let buf: Vec<u8>;
+    unsafe {
+        buf = CLIPBOARD_PNG_IMAGE_CURSOR.clone().into_inner();
+    }
+
+    // Write to file
+    match write(&path, buf) {
+        Ok(_) => return Ok(()),
+        Err(e) => return Err(format!("Failed to save image to {}: {}", path, e)),
+    }
+}
+
 /***** Main *****/
 fn main() {
     let context = tauri::generate_context!();
@@ -76,7 +96,7 @@ fn main() {
         } else {
             tauri::Menu::default()
         })
-        .invoke_handler(tauri::generate_handler![read_clipboard])
+        .invoke_handler(tauri::generate_handler![read_clipboard, save_image])
         .run(context)
         .expect("error while running tauri application");
 }
