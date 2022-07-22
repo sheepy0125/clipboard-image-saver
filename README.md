@@ -10,14 +10,14 @@ With this amazing program, one would be able to save an image with a simple Ctrl
 
 # Features
 
--   [ ] Easy to use GUI that's mobile-first for some reason
--   [ ] Pasting images
--   [ ] Viewing pasted images
--   [ ] Saving images
+-   [x] Easy to use GUI that's mobile-first for some reason
+-   [x] Pasting images
+-   [x] Viewing pasted images
+-   [x] Saving images
 -   [ ] Configuring auto paste or pasting manually
 -   [ ] Configuring where images are saved
 -   [ ] Configuring saving on paste or pressing a button to save
--   [ ] Transparency support
+-   [x] Transparency support
 -   [ ] Converting to different file formats
 -   [ ] Lightweight portable Linux application through an AppImage
 
@@ -38,7 +38,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ### TailwindCSS
 
 ```sh
-yay -S --needed docker --noconfirm  # Installs Docker. Note the `--noconfirm`, you may want to omit this
+yay -S --needed docker              # Installs Docker
 sudo systemctl enable --now docker  # Starts Docker on startup. To only run once, use `sudo systemctl start docker` instead
 # sudo dockerd & disown             # If you're running another init system besides Systemd, try this
 cd frontend/tailwind-yew-builder
