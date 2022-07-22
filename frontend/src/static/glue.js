@@ -8,6 +8,7 @@
 const invoke = window.__TAURI__.invoke;
 const dialog = window.__TAURI__.dialog;
 
+/***** Bridge functions *****/
 export async function invokeReadClipboard() {
 	return invoke("read_clipboard", {});
 }
@@ -22,7 +23,7 @@ export async function getSavePath() {
 		filters: [
 			{
 				name: "Image",
-				extensions: ["png"],
+				extensions: ["png"], // TODO: multiple extensions
 			},
 		],
 	});

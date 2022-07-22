@@ -13,7 +13,7 @@ use yew::prelude::*;
 mod widget;
 
 /***** Glue *****/
-#[wasm_bindgen(module = "/glue.js")]
+#[wasm_bindgen(module = "/src/static/glue.js")]
 extern "C" {
     #[wasm_bindgen(js_name = invokeSaveImage, catch)]
     pub async fn save_image_glue(path: String) -> Result<JsValue, JsValue>;

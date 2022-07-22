@@ -1,0 +1,18 @@
+/* When TailwindCSS can't do it, it goes here */
+.checkerboard {
+	background: conic-gradient(
+		rgba(0, 0, 0, 0.0125) 90deg,
+		rgba(255, 255, 255, 0.0125) 90deg 180deg,
+		rgba(0, 0, 0, 0.0125) 180deg 270deg,
+		rgba(255, 255, 255, 0.0125) 270deg
+	);
+	background-repeat: repeat;
+	background-size: 60px 60px;
+	background-position: top left;
+}
+
+#clipboard-image {
+	/* TailwindCSS's base layer has "img { max-width: 100%; }", */
+	/* which prevents expanding the image to overflow */
+	max-width: 694201337% !important;
+}
