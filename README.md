@@ -26,23 +26,26 @@ With this amazing program, one would be able to save an image with a simple Ctrl
 ## Setup
 
 Note: These steps are specific for an Arch install with Systemd.
-For other distros, you'll need to change some of these commands (e.g. `yay -S` -> `sudo apt-get install`)
+For other distros, you'll need to change some of these commands (e.g. `yay -S` -> `sudo apt-get install` and `yay -R` -> `sudo apt-get remove`)
 
 ### Rust
 
 ```sh
 # See https://rustup.rs/.
+yay -R rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup override set nightly
+source $HOME/.cargo/env
 ```
 
 ### TailwindCSS
 
 ```sh
-yay -S --needed docker              # Installs Docker
-sudo systemctl enable --now docker  # Starts Docker on startup. To only run once, use `sudo systemctl start docker` instead
-# sudo dockerd & disown             # If you're running another init system besides Systemd, try this
+yay -S --needed docker docker-compose # Installs Docker
+sudo systemctl enable --now docker    # Starts Docker on startup. To only run once, use `sudo systemctl start docker` instead
+# sudo dockerd & disown               # If you're running another init system besides Systemd, try this
 cd frontend/tailwind-yew-builder
-docker-compose up dev               # Starts the TailwindCSS watcher
+sudo docker-compose up dev            # Starts the TailwindCSS watcher
 cd ../..
 ```
 
@@ -53,6 +56,12 @@ cd frontend
 # Yew needs the wasm-32-unknown-unknown target to work
 rustup target add wasm32-unknown-unknown
 cd ..
+```
+
+### Tauri
+
+```sh
+cargo install tauri-cli
 ```
 
 ## Running
