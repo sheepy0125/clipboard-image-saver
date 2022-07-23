@@ -14,7 +14,14 @@
 extern crate base64;
 use arboard::Clipboard;
 use image::{DynamicImage, ImageBuffer, ImageOutputFormat, RgbaImage};
-use std::{fs::write, io::Cursor};
+#[allow(unused_imports)]
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::{read_to_string, write},
+    io::Cursor,
+};
+#[path = "../../shared/src/settings.rs"]
+mod settings;
 
 /***** Global image cursor *****/
 /* Yes, I'm aware that using a global isn't a good idea in most cases.
@@ -87,6 +94,36 @@ fn save_image(path: String) -> Result<(), String> {
     }
 }
 
+/// Read the settings file
+/// If the parsing was unsuccessful, this will return an error message as a String
+/// Otherwise, it'll return the JSON information of the settings as a String
+#[tauri::command]
+fn read_settings() -> Result<String, String> {
+    let file_text = match read_to_string("../settings.json") {
+        Ok(file_text) => file_text,
+        Err(e) => return Err(format!("Failed to load settings file: {}", e)),
+    };
+
+    Ok(file_text)
+}
+
+/// Save settings
+/// If the saving was unsuccessful, this will return an error message as a String
+/// Otherwise, it'll return `()`
+#[tauri::command]
+fn save_settings(settings: settings::Settings) -> Result<(), String> {
+    // Serialize
+    let serialized_data = match serde_json::to_string(&settings) {
+        Ok(serialized_data) => serialized_data,
+        Err(_) => return Err(format!("Failed to serialize settings!")),
+    };
+    // Write
+    match write("/settings.json", serialized_data) {
+        Ok(_) => return Ok(()),
+        Err(e) => return Err(format!("Failed to save settings: {}", e)),
+    }
+}
+
 /***** Main *****/
 fn main() {
     let context = tauri::generate_context!();
@@ -96,7 +133,12 @@ fn main() {
         } else {
             tauri::Menu::default()
         })
-        .invoke_handler(tauri::generate_handler![read_clipboard, save_image])
+        .invoke_handler(tauri::generate_handler![
+            read_clipboard,
+            save_image,
+            save_settings,
+            read_settings,
+        ])
         .run(context)
         .expect("error while running tauri application");
 }

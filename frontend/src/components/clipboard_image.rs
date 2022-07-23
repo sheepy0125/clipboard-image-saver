@@ -5,6 +5,7 @@
 
 /***** Setup *****/
 /* Imports */
+use super::global_settings;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
@@ -26,6 +27,13 @@ struct ImageDisplayProps {
 }
 #[function_component(ImageDisplay)]
 fn image_display(props: &ImageDisplayProps) -> Html {
+    // Settings
+    let settings =
+        use_context::<global_settings::Settings>().expect("Could not find settings context");
+
+    // Anti aliasing
+    let anti_aliasing = settings.anti_aliasing;
+
     // Dragging
     // The position of the cursor
     let cursor_pos_state = use_state_eq(|| [0, 0]);
@@ -142,7 +150,16 @@ fn image_display(props: &ImageDisplayProps) -> Html {
                     draggable="false"
                     class="relative border-2 border-white border-opacity-20 cursor-move"
                     src={ props.data_url.clone() }
-                    style={ format!("width: {}%; left: {}px; top: {}px", *image_size_percent_state, &(*display_image_pos_state)[0], &(*display_image_pos_state)[1]) }
+                    style={
+                        format!(
+                            "width: {}%; left: {}px; top: {}px; {}",
+                            *image_size_percent_state, &(*display_image_pos_state)[0], &(*display_image_pos_state)[1],
+                            match anti_aliasing {
+                                true => "",
+                                false => "image-rendering: pixelated;",
+                            }
+                        )
+                    }
                 />
             </div>
             <div class="flex absolute bottom-0 left-0 m-4">

@@ -28,3 +28,7 @@ export async function getSavePath() {
 		],
 	});
 }
+
+export async function invokeReadSettings() {
+	return invoke("read_settings", {});
+}
