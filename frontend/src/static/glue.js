@@ -17,18 +17,18 @@ export async function invokeSaveImage(path) {
 	return invoke("save_image", {path: path});
 }
 
-export async function getSavePath() {
+export async function invokeGetSavePath(format) {
+	const format_filter = [{name: format.toUpperCase(), extensions: [format.toLowerCase()]}];
 	return dialog.save({
 		multiple: false,
-		filters: [
-			{
-				name: "Image",
-				extensions: ["png"], // TODO: multiple extensions
-			},
-		],
+		filters: format_filter,
 	});
 }
 
 export async function invokeReadSettings() {
 	return invoke("read_settings", {});
+}
+
+export async function invokeSaveSettings(settings) {
+	return invoke("save_settings", {settings: settings});
 }

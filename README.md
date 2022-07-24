@@ -15,10 +15,10 @@ With this amazing program, one would be able to save an image with a simple Ctrl
 -   [x] Viewing pasted images
 -   [x] Saving images
 -   [ ] Configuring auto paste or pasting manually
--   [ ] Configuring where images are saved
--   [ ] Configuring saving on paste or pressing a button to save
+-   [x] Configuring where images are saved
+-   [x] Configuring anti-aliasing
+-   [ ] Configuring saving as different file formats
 -   [x] Transparency support
--   [ ] Converting to different file formats
 -   [ ] Lightweight portable Linux application through an AppImage
 
 # Building

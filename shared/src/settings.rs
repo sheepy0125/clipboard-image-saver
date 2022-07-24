@@ -7,19 +7,23 @@
 #![allow(dead_code, unused_imports)]
 /* Imports */
 use serde::{Deserialize, Serialize};
+use std::string::ToString;
+use strum_macros::{Display as EnumDisplay, EnumIter, EnumString};
 
 /***** Settings struct *****/
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(EnumIter, EnumString, EnumDisplay, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SaveFormat {
-    Png,
-    // TODO more
+    PNG,
+    JPG,
+    BMP,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub anti_aliasing: bool,
     pub save_path: String,
     pub save_format: SaveFormat,
+    pub auto_paste: bool,
 }
 
 /***** Functions *****/
@@ -28,7 +32,8 @@ pub fn default_settings() -> Settings {
     Settings {
         anti_aliasing: true,
         save_path: format!("/image.png"),
-        save_format: SaveFormat::Png,
+        save_format: SaveFormat::PNG,
+        auto_paste: false,
     }
 }
 

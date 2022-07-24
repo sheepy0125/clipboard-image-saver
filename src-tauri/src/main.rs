@@ -111,14 +111,8 @@ fn read_settings() -> Result<String, String> {
 /// If the saving was unsuccessful, this will return an error message as a String
 /// Otherwise, it'll return `()`
 #[tauri::command]
-fn save_settings(settings: settings::Settings) -> Result<(), String> {
-    // Serialize
-    let serialized_data = match serde_json::to_string(&settings) {
-        Ok(serialized_data) => serialized_data,
-        Err(_) => return Err(format!("Failed to serialize settings!")),
-    };
-    // Write
-    match write("/settings.json", serialized_data) {
+fn save_settings(settings: String) -> Result<(), String> {
+    match write("../settings.json", settings) {
         Ok(_) => return Ok(()),
         Err(e) => return Err(format!("Failed to save settings: {}", e)),
     }

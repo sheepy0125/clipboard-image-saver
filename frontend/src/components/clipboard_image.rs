@@ -142,13 +142,12 @@ fn image_display(props: &ImageDisplayProps) -> Html {
             </p>
             */
             <div class="w-full max-w-max"> // for zoom percentages based on image width
-                // TODO: anti-aliasing toggle
                 <img
                     onmousedown={ start_dragging }
                     alt="Image from clipboard"
                     id="clipboard-image"
                     draggable="false"
-                    class="relative border-2 border-white border-opacity-20 cursor-move"
+                    class="relative border-2 border-white cursor-move border-opacity-20"
                     src={ props.data_url.clone() }
                     style={
                         format!(
@@ -162,7 +161,7 @@ fn image_display(props: &ImageDisplayProps) -> Html {
                     }
                 />
             </div>
-            <div class="flex absolute bottom-0 left-0 m-4">
+            <div class="absolute bottom-0 left-0 flex m-4">
                 // https://heroicons.com/
                 // minus-circle outline
                 <svg
@@ -219,15 +218,23 @@ fn image_display(props: &ImageDisplayProps) -> Html {
 /***** Clipboard image component *****/
 #[function_component(ClipboardImage)]
 pub fn clipboard_image() -> Html {
+    // Settings
+    let settings =
+        use_context::<global_settings::Settings>().expect("Could not find settings context");
+
+    // Clipboard data
     let clipboard_state = use_state_eq(|| "".to_string());
+    // Auto paste
     {
         let clipboard_state = clipboard_state.clone();
         use_effect_with_deps(
             move |_| {
-                update_clipboard(clipboard_state);
+                if settings.auto_paste {
+                    update_clipboard(clipboard_state);
+                }
                 || ()
             },
-            (),
+            settings.auto_paste.clone(),
         )
     }
 
