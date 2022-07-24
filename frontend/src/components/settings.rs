@@ -10,7 +10,7 @@ use std::str::FromStr;
 use strum::IntoEnumIterator;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{window, HtmlSelectElement};
+use web_sys::{window, HtmlInputElement, HtmlSelectElement};
 use yew::{prelude::*, use_context};
 #[path = "./underline_text.rs"]
 mod underline_text;
@@ -39,12 +39,12 @@ pub fn settings(props: &SettingsProps) -> Html {
     let settings =
         use_context::<global_settings::Settings>().expect("Could not find settings context");
 
-    // Anti aliasing changed
+    // Anti aliasing
     let on_anti_aliased_changed = {
         let settings = settings.clone();
         let on_update_settings = on_update_settings.clone();
         Callback::from(move |e: Event| {
-            let value = match e.target_dyn_into::<HtmlSelectElement>() {
+            let value = match e.target_dyn_into::<HtmlInputElement>() {
                 Some(input) => match input.value().as_str() {
                     "true" => true,
                     "false" => false,
@@ -54,6 +54,25 @@ pub fn settings(props: &SettingsProps) -> Html {
             };
             let mut new_settings = settings.clone();
             new_settings.anti_aliasing = value;
+            on_update_settings.emit(new_settings);
+        })
+    };
+
+    // Auto paste
+    let on_auto_paste_changed = {
+        let settings = settings.clone();
+        let on_update_settings = on_update_settings.clone();
+        Callback::from(move |e: Event| {
+            let value = match e.target_dyn_into::<HtmlInputElement>() {
+                Some(input) => match input.value().as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => settings.auto_paste,
+                },
+                None => !settings.auto_paste,
+            };
+            let mut new_settings = settings.clone();
+            new_settings.auto_paste = value;
             on_update_settings.emit(new_settings);
         })
     };
@@ -120,7 +139,7 @@ pub fn settings(props: &SettingsProps) -> Html {
     };
 
     html! {
-        <widget::Widget class="flex flex-col h-full w-80">
+        <widget::Widget class="flex flex-col w-80 h-full">
             // Settings toggles
             <div class="flex-1">
                 <p class="text-2xl">{ "Settings" }</p>
@@ -143,12 +162,31 @@ pub fn settings(props: &SettingsProps) -> Html {
                     />
                     { " Disabled" }
                 </label>
+                // Auto paste
+                <underline_text::UnderlineText>{ "Auto paste" }</underline_text::UnderlineText>
+                <label>
+                    <input
+                        onchange={ on_auto_paste_changed.clone() }
+                        type="radio"
+                        checked={ settings.auto_paste }
+                        value="true"
+                    />
+                    { " Enabled" }
+                    <br />
+                    <input
+                        onchange={ on_auto_paste_changed.clone() }
+                        type="radio"
+                        checked={ !settings.auto_paste }
+                        value="false"
+                    />
+                    { " Disabled" }
+                </label>
                 // Save path
                 <underline_text::UnderlineText>{ "Save to" }</underline_text::UnderlineText>
                 <p>{ settings.save_path }</p>
                 <button
                     onclick={ on_get_save_path }
-                    class="px-2 py-1 text-sm text-black bg-gray-300 rounded-md w-max hover:bg-gray-200"
+                    class="px-2 py-1 w-max text-sm text-black bg-gray-300 rounded-md hover:bg-gray-200"
                 >
                     { "Browse" }
                 </button>
@@ -177,13 +215,13 @@ pub fn settings(props: &SettingsProps) -> Html {
             </div>
 
             // Controls
-            <div class="flex flex-initial w-full gap-2 my-2">
+            <div class="flex flex-initial gap-2 my-2 w-full">
                 // Reset
-                <button onclick={ on_reset } class="w-full p-2 bg-blue-800 rounded-md hover:bg-blue-700">
+                <button onclick={ on_reset } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
                     { "Reset settings" }
                 </button>
                 // Save
-                <button onclick={ on_save } class="w-full p-2 bg-blue-800 rounded-md hover:bg-blue-700">
+                <button onclick={ on_save } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
                     { "Save settings" }
                 </button>
             </div>
