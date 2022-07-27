@@ -21,8 +21,12 @@ extern "C" {
 }
 
 /***** Controls component *****/
+#[derive(PartialEq, Properties)]
+pub struct ControlsProps {
+    pub on_should_update_clipboard: Callback<bool>,
+}
 #[function_component(Controls)]
-pub fn controls() -> Html {
+pub fn controls(props: &ControlsProps) -> Html {
     // Settings
     let settings =
         use_context::<global_settings::Settings>().expect("Could not find settings context");
@@ -41,13 +45,30 @@ pub fn controls() -> Html {
         }
     };
 
+    // Update clipboard
+    let on_should_update_clipboard = props.on_should_update_clipboard.clone();
+    let on_update_clipboard = {
+        let on_update_clipboard = on_should_update_clipboard.clone();
+        Callback::from(move |_| {
+            on_update_clipboard.emit(true);
+        })
+    };
+
     html! {
         <widget::Widget>
             <p class="text-2xl">{ "Controls" }</p>
-            <div class="flex">
-                <button onclick={ on_save_image } class="flex-auto p-2 my-2 bg-blue-800 rounded-md hover:bg-blue-700">{ "Save image" }</button>
+            <div class="flex flex-initial gap-2 my-2 w-full">
+                // Refresh
+                <button onclick={ on_update_clipboard } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                    { "Refresh clipboard" }
+                </button>
+                // Save
+                <button onclick={ on_save_image } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                    { "Save image" }
+                </button>
             </div>
         </widget::Widget>
+
     }
 }
 

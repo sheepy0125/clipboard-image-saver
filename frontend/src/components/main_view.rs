@@ -50,6 +50,16 @@ pub fn main_view() -> Html {
         })
     };
 
+    // Paste button callback from control widget
+    let should_update_clipboard = use_state_eq(|| false);
+    let on_should_update_clipboard = {
+        let should_update_clipboard = should_update_clipboard.clone();
+        Callback::from(move |_| {
+            should_update_clipboard.set(true);
+            should_update_clipboard.set(false);
+        })
+    };
+
     // Right side collapsed
     let right_side_collapsed_state = use_state_eq(|| true);
     let on_collapsed_toggle_click = {
@@ -61,8 +71,8 @@ pub fn main_view() -> Html {
         <ContextProvider<global_settings::Settings> context={(*settings_state).clone()}>
             <div class="flex p-2 h-screen">
                 // Image view
-                <div class="flex-1">
-                    <clipboard_image::ClipboardImage />
+                <div class="grid flex-1 w-full">
+                    <clipboard_image::ClipboardImage should_update_clipboard={ *should_update_clipboard } />
                 </div>
                 // Settings and controls
                 <div class={
@@ -75,10 +85,10 @@ pub fn main_view() -> Html {
                     )
                 }>
                     <div class="flex-1 mb-2">
-                        <settings::Settings {on_update_settings} />
+                        <settings::Settings { on_update_settings } />
                     </div>
                     <div class="flex-initial">
-                        <controls::Controls />
+                        <controls::Controls { on_should_update_clipboard } />
                     </div>
                 </div>
                 // Collapse

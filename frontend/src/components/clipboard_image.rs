@@ -8,8 +8,8 @@
 use super::global_settings;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::window;
-use yew::prelude::*;
+use web_sys::{window, HtmlImageElement};
+use yew::{prelude::*, virtual_dom::AttrValue};
 #[path = "./widget.rs"]
 mod widget;
 
@@ -21,12 +21,23 @@ extern "C" {
 }
 
 /***** Image display component *****/
-#[derive(PartialEq, Properties)]
+#[derive(PartialEq, Properties, Clone)]
 struct ImageDisplayProps {
-    data_url: String,
+    data_url: AttrValue,
+    reset_zoom: bool,
 }
 #[function_component(ImageDisplay)]
 fn image_display(props: &ImageDisplayProps) -> Html {
+    // Debug render count
+    let render_count = use_mut_ref(|| 0);
+    {
+        let render_count = render_count.clone();
+        use_effect(move || {
+            *render_count.borrow_mut() += 1;
+            || ()
+        });
+    }
+
     // Settings
     let settings =
         use_context::<global_settings::Settings>().expect("Could not find settings context");
@@ -34,134 +45,198 @@ fn image_display(props: &ImageDisplayProps) -> Html {
     // Anti aliasing
     let anti_aliasing = settings.anti_aliasing;
 
+    // Image ref
+    let image_ref = use_node_ref();
+    let image_ref_element = image_ref
+        .cast::<HtmlImageElement>()
+        .unwrap_or(HtmlImageElement::new().unwrap());
+
     // Dragging
     // The position of the cursor
-    let cursor_pos_state = use_state_eq(|| [0, 0]);
+    let cursor_pos_ref = use_mut_ref(|| [0, 0]);
     // The position of the mouse cursor with the origin being the top-left point of the image
-    let start_dragging_pos_state = use_state_eq(|| [0, 0]);
+    let start_dragging_pos_ref = use_mut_ref(|| [0, 0]);
     // The position that the image should be rendered at, factoring in the difference between
-    // the image pos and the start dragging pos. Will only be updated when `dragging_state`
-    let display_image_pos_state = use_state_eq(|| [0, 0]);
+    // the image pos and the start dragging pos. Will only be updated when `dragging_ref` does
+    let display_image_pos_ref = use_mut_ref(|| [0, 0]);
     // Whether the image is being dragged or not
-    let dragging_state = use_state_eq(|| false);
-
+    let dragging_ref = use_mut_ref(|| false);
+    let dragging_style_update = {
+        let style = image_ref_element.style();
+        let display_image_pos_ref = display_image_pos_ref.clone();
+        move || {
+            let display_pos = *display_image_pos_ref.borrow();
+            style
+                .set_property("left", format!("{}px", display_pos[0]).as_str())
+                .unwrap();
+            style
+                .set_property("top", format!("{}px", display_pos[1]).as_str())
+                .unwrap();
+        }
+    };
     let start_dragging = {
-        let dragging_state = dragging_state.clone();
-        let display_image_pos_state = display_image_pos_state.clone();
-        let cursor_pos_state = cursor_pos_state.clone();
-        let start_dragging_pos_state = start_dragging_pos_state.clone();
+        let dragging_ref = dragging_ref.clone();
+        let display_image_pos_ref = display_image_pos_ref.clone();
+        let cursor_pos_ref = cursor_pos_ref.clone();
+        let start_dragging_pos_ref = start_dragging_pos_ref.clone();
         Callback::from(move |event: MouseEvent| {
-            dragging_state.set(true);
-            let current_image_pos = *display_image_pos_state;
-            start_dragging_pos_state.set([
+            *dragging_ref.borrow_mut() = true;
+            let current_image_pos = *display_image_pos_ref.borrow();
+            *start_dragging_pos_ref.borrow_mut() = [
                 event.client_x() - current_image_pos[0],
                 event.client_y() - current_image_pos[1],
-            ]);
-            cursor_pos_state.set([event.client_x(), event.client_y()]);
+            ];
+            *cursor_pos_ref.borrow_mut() = [event.client_x(), event.client_y()];
         })
     };
     let dragging = {
-        let cursor_pos_state = cursor_pos_state.clone();
-        let display_image_pos_state = display_image_pos_state.clone();
-        let start_dragging_pos_state = start_dragging_pos_state.clone();
-        let dragging_state = dragging_state.clone();
+        let cursor_pos_ref = cursor_pos_ref.clone();
+        let display_image_pos_ref = display_image_pos_ref.clone();
+        let start_dragging_pos_ref = start_dragging_pos_ref.clone();
+        let dragging_ref = dragging_ref.clone();
+        let dragging_style_update = dragging_style_update.clone();
         Callback::from(move |event: MouseEvent| {
             // The actual position that the image is rendered at will have to subtract
             // the relative start drag position
-
-            if !*dragging_state {
+            if !*dragging_ref.borrow() {
                 return;
             }
 
-            cursor_pos_state.set([event.x(), event.y()]);
+            // Update cursor position to avoid first "frame" of dragging in the
+            // wrong place
+            *cursor_pos_ref.borrow_mut() = [event.x(), event.y()];
+
+            // Get new display position
+            let cursor_pos = *cursor_pos_ref.borrow();
+            let start_dragging_pos = *start_dragging_pos_ref.borrow();
+            let display_image_pos = *display_image_pos_ref.borrow();
 
             let display_pos = match [
-                &(*cursor_pos_state)[0] - &(*start_dragging_pos_state)[0],
-                &(*cursor_pos_state)[1] - &(*start_dragging_pos_state)[1],
+                cursor_pos[0] - start_dragging_pos[0],
+                cursor_pos[1] - start_dragging_pos[1],
             ] {
-                [0, 0] => *display_image_pos_state,
+                [0, 0] => display_image_pos,
                 new_pos => new_pos,
             };
 
-            display_image_pos_state.set(display_pos);
+            *display_image_pos_ref.borrow_mut() = display_pos;
+
+            dragging_style_update();
         })
     };
     let stop_dragging = {
-        let dragging_state = dragging_state.clone();
-        Callback::from(move |_| dragging_state.set(false))
+        let dragging_ref = dragging_ref.clone();
+        Callback::from(move |_| {
+            *dragging_ref.borrow_mut() = false;
+        })
     };
 
     // Zooming
-    let image_size_percent_state = use_state_eq(|| 100);
-
-    let on_zoom_in = {
-        let image_size_percent_state = image_size_percent_state.clone();
-        let new_size_percent = *image_size_percent_state + 10;
-        Callback::from(move |_| image_size_percent_state.set(new_size_percent))
-    };
-    let on_zoom_out = {
-        let image_size_percent_state = image_size_percent_state.clone();
-        let mut new_size_percent = *image_size_percent_state - 10;
-        // Disallow negative percentages
-        if new_size_percent <= 0 {
-            new_size_percent = 0;
+    let image_size_percent_ref = use_mut_ref(|| 100);
+    let zoom_style_update = {
+        let image_ref_element = image_ref_element.clone();
+        let image_size_percent_ref = image_size_percent_ref.clone();
+        move || {
+            let style = image_ref_element.style();
+            style
+                .set_property(
+                    "width",
+                    format!("{}%", *image_size_percent_ref.borrow()).as_str(),
+                )
+                .unwrap();
         }
-        Callback::from(move |_| image_size_percent_state.set(new_size_percent))
     };
-    let on_zoom_reset = {
-        // Resetting the zoom will also reset the position
-        let image_size_percent_state = image_size_percent_state.clone();
-        let display_image_pos_state = display_image_pos_state.clone();
+    let on_zoom_in = {
+        let image_size_percent_ref = image_size_percent_ref.clone();
+        let zoom_style_update = zoom_style_update.clone();
         Callback::from(move |_| {
-            display_image_pos_state.set([0, 0]);
-            image_size_percent_state.set(100);
+            *image_size_percent_ref.borrow_mut() += settings.zoom_by;
+            zoom_style_update();
         })
     };
+    let on_zoom_out = {
+        let image_size_percent_ref = image_size_percent_ref.clone();
+        let zoom_style_update = zoom_style_update.clone();
+        Callback::from(move |_| {
+            let mut new_size_percent = *image_size_percent_ref.borrow() - settings.zoom_by;
+            // Disallow negative percentages
+            if new_size_percent <= 0 {
+                new_size_percent = 0;
+            }
+            *image_size_percent_ref.borrow_mut() = new_size_percent;
+            zoom_style_update();
+        })
+    };
+    let on_zoom_reset = {
+        let image_size_percent_ref = image_size_percent_ref.clone();
+        let display_image_pos_ref = display_image_pos_ref.clone();
+        let zoom_style_update = zoom_style_update.clone();
+        // Resetting the zoom will also reset the position
+        let dragging_style_update = dragging_style_update.clone();
+        Callback::from(move |_| {
+            *display_image_pos_ref.borrow_mut() = [0, 0];
+            *image_size_percent_ref.borrow_mut() = 100;
+            zoom_style_update();
+            dragging_style_update();
+        })
+    };
+
+    // Reset zoom if props require
+    let reset_zoom = props.reset_zoom;
+    if reset_zoom {
+        // Call the reset zoom callback with a made-up mouse up event
+        let fake_mouse_event = MouseEvent::new("mouseup").unwrap();
+        on_zoom_reset.emit(fake_mouse_event);
+    }
+
+    // If there was a rerender, the image style may not be updated properly
+    // So update it
+    use_effect({
+        let dragging_style_update = dragging_style_update.clone();
+        let zoom_style_update = zoom_style_update.clone();
+        move || {
+            zoom_style_update();
+            dragging_style_update();
+            || ()
+        }
+    });
 
     html! {
         <widget::Widget
             class={"
-                bg-widget border-2 bg-gray-700 bg-opacity-80 border-pink-200 h-full
-                text-blue-200 rounded-lg shadow-lg overflow-hidden checkerboard
-                select-none
+                border-2 bg-gray-700 bg-opacity-80 border-pink-200 text-blue-200
+                rounded-lg shadow-lg overflow-hidden checkerboard select-none
+                h-full w-full
             "}
+            // style="width: 1520px !important"
             onmousemove={ dragging }
             onmouseup={ stop_dragging }
         >
-            // Debug information (uncomment to show)
-            /*
-            <p>
-                {
-                    format!(
-                        "image_size_percent {:?} dragging {:?} cursor_pos {:?}
-                        display_image_pos {:?} start_dragging_pos {:?}",
-                        *image_size_percent_state, *dragging_state, *cursor_pos_state,
-                        *display_image_pos_state, *start_dragging_pos_state
-                    )
-                }
-            </p>
-            */
-            <div class="w-full max-w-max"> // for zoom percentages based on image width
+            // DEBUG
+            // <p>{ format!("Number of renders: {}", *render_count.borrow()) }</p>
+            <div class="w-full">
+            <div class="w-max">
                 <img
                     onmousedown={ start_dragging }
+                    ref={ image_ref }
                     alt="Image from clipboard"
                     id="clipboard-image"
                     draggable="false"
-                    class="relative border-2 border-white cursor-move border-opacity-20"
+                    class="relative border-2 border-white border-opacity-20 cursor-move"
                     src={ props.data_url.clone() }
                     style={
                         format!(
-                            "width: {}%; left: {}px; top: {}px; {}",
-                            *image_size_percent_state, &(*display_image_pos_state)[0], &(*display_image_pos_state)[1],
+                            "{}",
                             match anti_aliasing {
                                 true => "",
-                                false => "image-rendering: pixelated;",
+                                false => "image-rendering: pixelated; image-rendering: crisp-edges;",
                             }
                         )
                     }
                 />
             </div>
-            <div class="absolute bottom-0 left-0 flex m-4">
+            </div>
+            <div class="flex absolute bottom-0 left-0 m-4">
                 // https://heroicons.com/
                 // minus-circle outline
                 <svg
@@ -216,48 +291,49 @@ fn image_display(props: &ImageDisplayProps) -> Html {
 }
 
 /***** Clipboard image component *****/
+#[derive(PartialEq, Properties)]
+pub struct ClipboardImageProps {
+    pub should_update_clipboard: bool,
+}
 #[function_component(ClipboardImage)]
-pub fn clipboard_image() -> Html {
+pub fn clipboard_image(props: &ClipboardImageProps) -> Html {
     // Settings
     let settings =
         use_context::<global_settings::Settings>().expect("Could not find settings context");
 
     // Clipboard data
-    let clipboard_state = use_state_eq(|| "".to_string());
-    // Auto paste
+    let clipboard_state = use_state_eq(|| AttrValue::from("".to_owned()));
+
+    // Pasting
+    let should_update_clipboard = props.should_update_clipboard;
     {
         let clipboard_state = clipboard_state.clone();
         use_effect_with_deps(
             move |_| {
-                if settings.auto_paste {
+                if settings.auto_paste || should_update_clipboard {
                     update_clipboard(clipboard_state);
                 }
                 || ()
             },
-            settings.auto_paste.clone(),
+            (settings.auto_paste.clone(), should_update_clipboard),
         )
     }
 
-    // Control+V listener
-    let on_paste = {
-        let clipboard_state = clipboard_state.clone();
-        Callback::from(move |_| update_clipboard(clipboard_state.clone()))
-    };
-
-    let clipboard_base64 = format!("{}", *clipboard_state);
-
     html! {
-        <div onpaste={on_paste} class="h-full">
-            <ImageDisplay data_url={ format!("data:image/png;base64,{}", &clipboard_base64) } />
-        </div>
+        <ImageDisplay
+            reset_zoom={ should_update_clipboard }
+            data_url={ AttrValue::from(format!("data:image/png;base64,{}", *clipboard_state)) }
+        />
     }
 }
 
 /// Update clipboard state from JavaScript glue
-fn update_clipboard(clipboard_state: UseStateHandle<String>) {
+fn update_clipboard(clipboard_state: UseStateHandle<AttrValue>) {
     spawn_local(async move {
         match read_clipboard_glue().await {
-            Ok(clipboard_contents) => clipboard_state.set(clipboard_contents.as_string().unwrap()),
+            Ok(clipboard_contents) => {
+                clipboard_state.set(AttrValue::from(clipboard_contents.as_string().unwrap()))
+            }
             Err(e) => {
                 window()
                     .unwrap()

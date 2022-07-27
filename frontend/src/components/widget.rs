@@ -12,6 +12,7 @@ use yew::prelude::*;
 pub struct WidgetProps {
     pub children: Children,
     pub class: Option<String>,
+    pub style: Option<String>,
     pub id: Option<String>,
     pub onmousemove: Option<Callback<MouseEvent>>,
     pub onmouseup: Option<Callback<MouseEvent>>,
@@ -19,6 +20,7 @@ pub struct WidgetProps {
 #[function_component(Widget)]
 pub fn widget(props: &WidgetProps) -> Html {
     let extra_class = props.class.clone().unwrap_or_default();
+    let extra_style = props.style.clone().unwrap_or_default();
     let extra_id = props.id.clone().unwrap_or_default();
     let onmousemove = props.onmousemove.clone().unwrap_or_default();
     let onmouseup = props.onmouseup.clone().unwrap_or_default();
@@ -31,6 +33,7 @@ pub fn widget(props: &WidgetProps) -> Html {
                     extra_class
                 )
             }
+            style={ extra_style }
             id={ extra_id }
             { onmousemove }
             { onmouseup }

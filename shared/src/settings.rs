@@ -24,6 +24,7 @@ pub struct Settings {
     pub save_path: String,
     pub save_format: SaveFormat,
     pub auto_paste: bool,
+    pub zoom_by: i32,
 }
 
 /***** Functions *****/
@@ -34,6 +35,7 @@ pub fn default_settings() -> Settings {
         save_path: format!("/image.png"),
         save_format: SaveFormat::PNG,
         auto_paste: false,
+        zoom_by: 10,
     }
 }
 

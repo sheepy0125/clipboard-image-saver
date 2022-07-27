@@ -63,6 +63,7 @@ fn read_clipboard() -> Result<String, String> {
     let image = DynamicImage::ImageRgba8(image_buf);
     unsafe {
         CLIPBOARD_PNG_IMAGE_CURSOR.set_position(0);
+        CLIPBOARD_PNG_IMAGE_CURSOR.get_mut().clear();
         image
             .write_to(&mut CLIPBOARD_PNG_IMAGE_CURSOR, ImageOutputFormat::Png) // TODO: different formats
             .unwrap();

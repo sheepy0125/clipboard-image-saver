@@ -9,6 +9,10 @@ use yew::prelude::*;
 #[path = "./components/main_view.rs"]
 mod main_view;
 
+// Use `wee_alloc` as the global allocator.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 /***** App *****/
 #[function_component(App)]
 pub fn app() -> Html {

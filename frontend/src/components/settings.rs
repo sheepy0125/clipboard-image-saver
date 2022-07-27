@@ -43,8 +43,8 @@ pub fn settings(props: &SettingsProps) -> Html {
     let on_anti_aliased_changed = {
         let settings = settings.clone();
         let on_update_settings = on_update_settings.clone();
-        Callback::from(move |e: Event| {
-            let value = match e.target_dyn_into::<HtmlInputElement>() {
+        Callback::from(move |event: Event| {
+            let value = match event.target_dyn_into::<HtmlInputElement>() {
                 Some(input) => match input.value().as_str() {
                     "true" => true,
                     "false" => false,
@@ -62,8 +62,8 @@ pub fn settings(props: &SettingsProps) -> Html {
     let on_auto_paste_changed = {
         let settings = settings.clone();
         let on_update_settings = on_update_settings.clone();
-        Callback::from(move |e: Event| {
-            let value = match e.target_dyn_into::<HtmlInputElement>() {
+        Callback::from(move |event: Event| {
+            let value = match event.target_dyn_into::<HtmlInputElement>() {
                 Some(input) => match input.value().as_str() {
                     "true" => true,
                     "false" => false,
@@ -92,11 +92,10 @@ pub fn settings(props: &SettingsProps) -> Html {
         let settings = settings.clone();
         let on_update_settings = on_update_settings.clone();
 
-        Callback::from(move |e: Event| {
-            let save_format = match e.target_dyn_into::<HtmlSelectElement>() {
-                Some(input) => {
-                    global_settings::SaveFormat::from_str(input.value().as_str()).unwrap()
-                }
+        Callback::from(move |event: Event| {
+            let save_format = match event.target_dyn_into::<HtmlSelectElement>() {
+                Some(input) => global_settings::SaveFormat::from_str(input.value().as_str())
+                    .unwrap_or_else(|_| settings.save_format.clone()),
                 None => settings.save_format.clone(),
             };
             let mut new_settings = settings.clone();
@@ -119,6 +118,24 @@ pub fn settings(props: &SettingsProps) -> Html {
             },
             settings.save_format.clone(),
         )
+    };
+
+    // Zoom by range changed
+    let zoom_by_range = {
+        let settings = settings.clone();
+        let on_update_settings = on_update_settings.clone();
+        Callback::from(move |event: InputEvent| {
+            let zoom_by = match event.target_dyn_into::<HtmlInputElement>() {
+                Some(input) => input
+                    .value()
+                    .parse::<i32>()
+                    .unwrap_or_else(|_| settings.zoom_by.clone()),
+                None => settings.zoom_by.clone(),
+            };
+            let mut new_settings = settings.clone();
+            new_settings.zoom_by = zoom_by;
+            on_update_settings.emit(new_settings);
+        })
     };
 
     // Save
@@ -212,6 +229,10 @@ pub fn settings(props: &SettingsProps) -> Html {
                         }).collect::<Html>()
                     }
                 </select>
+                // Zoom by
+                <underline_text::UnderlineText>{ "Zoom by" }</underline_text::UnderlineText>
+                <p>{ format!("{}%", settings.zoom_by) }</p>
+                <input oninput={ zoom_by_range } type="range" min=1 max=100 />
             </div>
 
             // Controls
@@ -241,7 +262,9 @@ fn get_image_save_path(
         match get_save_path_glue(save_format).await {
             Ok(save_path) => {
                 let mut new_settings = settings.clone();
-                new_settings.save_path = save_path.as_string().unwrap_or(new_settings.save_path);
+                new_settings.save_path = save_path
+                    .as_string()
+                    .unwrap_or_else(|| new_settings.save_path);
                 on_update_settings.emit(new_settings);
             }
             Err(e) => {
