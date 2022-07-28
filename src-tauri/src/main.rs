@@ -30,7 +30,9 @@ use tauri::{
 #[path = "../../shared/src/settings.rs"]
 mod settings;
 
-/***** Global image data *****/
+/***** Globals *****/
+static SETTINGS_PATH: &str = "../settings.json";
+
 #[derive(Default)]
 pub struct ImageDataState(pub RwLock<ImageData>);
 #[derive(Default)]
@@ -160,10 +162,10 @@ fn save_image(state: State<ImageDataState>, path: String, format: String) -> Res
     Ok(())
 }
 
-/// Read the settings file and return the text contents of it
+/// Load the settings file and return the text contents of it
 #[tauri::command]
-fn read_settings() -> Result<String, String> {
-    let file_text = match read_to_string("../settings.json") {
+fn load_settings() -> Result<String, String> {
+    let file_text = match read_to_string(SETTINGS_PATH) {
         Ok(file_text) => file_text,
         Err(e) => return Err(format!("Failed to load settings file: {}", e)),
     };
@@ -174,7 +176,7 @@ fn read_settings() -> Result<String, String> {
 /// Save settings
 #[tauri::command]
 fn save_settings(settings: String) -> Result<(), String> {
-    match write("../settings.json", settings) {
+    match write(SETTINGS_PATH, settings) {
         Ok(_) => return Ok(()),
         Err(e) => return Err(format!("Failed to save settings: {}", e)),
     }
@@ -194,7 +196,7 @@ fn main() {
             read_clipboard,
             save_image,
             save_settings,
-            read_settings,
+            load_settings,
             get_save_path,
         ])
         .run(context)

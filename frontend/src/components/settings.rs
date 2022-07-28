@@ -10,7 +10,7 @@ use std::{path::PathBuf, str::FromStr};
 use strum::IntoEnumIterator;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{window, HtmlInputElement, HtmlSelectElement};
+use web_sys::{window, HtmlElement, HtmlInputElement, HtmlSelectElement};
 use yew::{prelude::*, use_context};
 #[path = "./underline_text.rs"]
 mod underline_text;
@@ -22,6 +22,8 @@ mod widget;
 extern "C" {
     #[wasm_bindgen(js_name = invokeGetSavePath, catch)]
     pub async fn get_save_path_glue(format: String) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(js_name = invokeLoadSettings, catch)]
+    pub async fn load_settings_glue() -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = invokeSaveSettings, catch)]
     pub async fn save_settings_glue(settings_text: String) -> Result<JsValue, JsValue>;
 }
@@ -139,7 +141,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                 }
                 || {}
             },
-            settings.save_format.clone(),
+            settings.zoom_by.clone(),
         )
     };
 
@@ -160,6 +162,24 @@ pub fn settings(props: &SettingsProps) -> Html {
             on_update_settings.emit(new_settings);
         })
     };
+
+    // Load
+    let on_load = {
+        let on_update_settings = on_update_settings.clone();
+        Callback::from(move |_| {
+            load_settings(on_update_settings.clone());
+        })
+    };
+    {
+        let on_update_settings = on_update_settings.clone();
+        use_effect_with_deps(
+            move |_| {
+                load_settings(on_update_settings.clone());
+                || ()
+            },
+            (),
+        )
+    }
 
     // Save
     let on_save = {
@@ -254,15 +274,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                 </select>
                 // Zoom by
                 <underline_text::UnderlineText>{ "Zoom by" }</underline_text::UnderlineText>
-                <p>{
-                    format!(
-                        "{}%",
-                        match zoom_by_slider_ref.cast::<HtmlInputElement>() {
-                            Some(element) => element.value(),
-                            None => settings.zoom_by.to_string()
-                        }
-                    )
-                }</p>
+                <p>{ format!("{}%", settings.zoom_by.to_string()) }</p>
                 <input oninput={ zoom_by_range } ref={ zoom_by_slider_ref } type="range" min=1 max=100 />
             </div>
 
@@ -270,11 +282,15 @@ pub fn settings(props: &SettingsProps) -> Html {
             <div class="flex flex-initial gap-2 my-2 w-full">
                 // Reset
                 <button onclick={ on_reset } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
-                    { "Reset settings" }
+                    { "Reset" }
+                </button>
+                // Load
+                <button onclick={ on_load } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                    { "Load" }
                 </button>
                 // Save
                 <button onclick={ on_save } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
-                    { "Save settings" }
+                    { "Save" }
                 </button>
             </div>
         </widget::Widget>
@@ -306,6 +322,26 @@ fn get_image_save_path(
                     }))
                     .unwrap();
             }
+        }
+    })
+}
+
+/// Load settings from JavaScript glue
+fn load_settings(on_update_settings: Callback<global_settings::Settings>) {
+    spawn_local(async move {
+        let settings_text = match load_settings_glue().await {
+            Ok(settings_text) => settings_text.as_string().unwrap(),
+            Err(e) => {
+                window()
+                    .unwrap()
+                    .alert_with_message(&e.as_string().unwrap())
+                    .unwrap();
+                return;
+            }
+        };
+        match global_settings::Settings::parse(settings_text) {
+            Ok(new_settings) => on_update_settings.emit(new_settings),
+            Err(e) => window().unwrap().alert_with_message(&e.as_str()).unwrap(),
         }
     })
 }

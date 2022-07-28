@@ -7,9 +7,6 @@
 /* Imports */
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::window;
 use yew::{prelude::*, ContextProvider};
 #[path = "./clipboard_image.rs"]
 mod clipboard_image;
@@ -20,29 +17,11 @@ pub mod global_settings;
 #[path = "./settings.rs"]
 mod settings;
 
-/***** Glue *****/
-#[wasm_bindgen(module = "/src/static/glue.js")]
-extern "C" {
-    #[wasm_bindgen(js_name = invokeReadSettings, catch)]
-    pub async fn read_settings_glue() -> Result<JsValue, JsValue>;
-}
-
 /***** Main view *****/
 #[function_component(MainView)]
 pub fn main_view() -> Html {
     // Settings
-    let settings_state: UseStateHandle<global_settings::Settings> =
-        use_state(|| global_settings::Settings::default());
-    {
-        let settings_state: UseStateHandle<global_settings::Settings> = settings_state.clone();
-        use_effect_with_deps(
-            move |_| {
-                read_settings(settings_state);
-                || ()
-            },
-            (),
-        )
-    }
+    let settings_state = use_state(|| global_settings::Settings::default());
     let on_update_settings = {
         let settings_state = settings_state.clone();
         Callback::from(move |new_settings: global_settings::Settings| {
@@ -103,24 +82,4 @@ pub fn main_view() -> Html {
             </div>
         </ContextProvider<global_settings::Settings>>
     }
-}
-
-/// Read settings from JavaScript glue
-fn read_settings(settings_state: UseStateHandle<global_settings::Settings>) {
-    spawn_local(async move {
-        let settings_text = match read_settings_glue().await {
-            Ok(settings_text) => settings_text.as_string().unwrap(),
-            Err(e) => {
-                window()
-                    .unwrap()
-                    .alert_with_message(&e.as_string().unwrap())
-                    .unwrap();
-                return;
-            }
-        };
-        match global_settings::Settings::parse(settings_text) {
-            Ok(settings) => settings_state.set(settings),
-            Err(e) => window().unwrap().alert_with_message(&e.as_str()).unwrap(),
-        }
-    })
 }

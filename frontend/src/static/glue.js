@@ -20,8 +20,8 @@ export async function invokeGetSavePath(format) {
 	return invoke("get_save_path", {format: format});
 }
 
-export async function invokeReadSettings() {
-	return invoke("read_settings", {});
+export async function invokeLoadSettings() {
+	return invoke("load_settings", {});
 }
 
 export async function invokeSaveSettings(settings) {
