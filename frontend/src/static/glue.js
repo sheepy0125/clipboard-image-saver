@@ -13,8 +13,8 @@ export async function invokeReadClipboard() {
 	return invoke("read_clipboard", {});
 }
 
-export async function invokeSaveImage(path) {
-	return invoke("save_image", {path: path});
+export async function invokeSaveImage(path, format) {
+	return invoke("save_image", {path: path, format: format});
 }
 
 export async function invokeGetSavePath(format) {

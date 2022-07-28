@@ -6,7 +6,7 @@
 /***** Setup *****/
 /* Imports */
 use super::global_settings;
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 use strum::IntoEnumIterator;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -100,6 +100,13 @@ pub fn settings(props: &SettingsProps) -> Html {
             };
             let mut new_settings = settings.clone();
             new_settings.save_format = save_format;
+
+            // Also update the file extension for the save path
+            let extension = new_settings.save_format.to_string().to_lowercase();
+            let mut save_path_buf = PathBuf::from(&new_settings.save_path);
+            save_path_buf.set_extension(extension);
+            new_settings.save_path = save_path_buf.to_string_lossy().to_string();
+
             on_update_settings.emit(new_settings);
         })
     };
@@ -112,7 +119,8 @@ pub fn settings(props: &SettingsProps) -> Html {
         use_effect_with_deps(
             move |selection| {
                 if let Some(element) = save_format_select_ref.cast::<HtmlSelectElement>() {
-                    element.set_value(selection.to_string().as_str())
+                    let format_string = selection.to_string();
+                    element.set_value(format_string.as_str())
                 }
                 || {}
             },
@@ -148,7 +156,7 @@ pub fn settings(props: &SettingsProps) -> Html {
 
     // Reset
     let on_reset = {
-        let default_settings = global_settings::default_settings();
+        let default_settings = global_settings::Settings::default();
         let on_update_settings = on_update_settings.clone();
         Callback::from(move |_| {
             on_update_settings.emit(default_settings.clone());

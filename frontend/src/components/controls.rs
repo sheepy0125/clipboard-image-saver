@@ -17,7 +17,7 @@ mod widget;
 #[wasm_bindgen(module = "/src/static/glue.js")]
 extern "C" {
     #[wasm_bindgen(js_name = invokeSaveImage, catch)]
-    pub async fn save_image_glue(path: String) -> Result<JsValue, JsValue>;
+    pub async fn save_image_glue(path: String, format: String) -> Result<JsValue, JsValue>;
 }
 
 /***** Controls component *****/
@@ -34,6 +34,7 @@ pub fn controls(props: &ControlsProps) -> Html {
     // Save image
     let save_image_path = settings.save_path;
     let on_save_image = {
+        let save_format = settings.save_format.clone();
         match &save_image_path.is_empty() {
             true => Callback::from(move |_| {
                 window()
@@ -41,7 +42,9 @@ pub fn controls(props: &ControlsProps) -> Html {
                     .alert_with_message("Save path is empty! Aborting")
                     .unwrap()
             }),
-            false => Callback::from(move |_| save_clipboard_image(save_image_path.clone())),
+            false => Callback::from(move |_| {
+                save_clipboard_image(save_image_path.clone(), save_format.to_string())
+            }),
         }
     };
 
@@ -73,9 +76,9 @@ pub fn controls(props: &ControlsProps) -> Html {
 }
 
 /// Save clipboard to file from JavaScript glue
-fn save_clipboard_image(path: String) {
+fn save_clipboard_image(path: String, format: String) {
     spawn_local(async move {
-        match save_image_glue(path.clone()).await {
+        match save_image_glue(path.clone(), format.clone()).await {
             Ok(_) => {
                 window()
                     .unwrap()

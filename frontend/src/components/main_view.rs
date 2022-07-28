@@ -32,7 +32,7 @@ extern "C" {
 pub fn main_view() -> Html {
     // Settings
     let settings_state: UseStateHandle<global_settings::Settings> =
-        use_state(|| global_settings::default_settings());
+        use_state(|| global_settings::Settings::default());
     {
         let settings_state: UseStateHandle<global_settings::Settings> = settings_state.clone();
         use_effect_with_deps(
@@ -118,7 +118,7 @@ fn read_settings(settings_state: UseStateHandle<global_settings::Settings>) {
                 return;
             }
         };
-        match global_settings::parse_settings(settings_text) {
+        match global_settings::Settings::parse(settings_text) {
             Ok(settings) => settings_state.set(settings),
             Err(e) => window().unwrap().alert_with_message(&e.as_str()).unwrap(),
         }

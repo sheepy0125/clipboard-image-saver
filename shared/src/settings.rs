@@ -16,6 +16,16 @@ pub enum SaveFormat {
     PNG,
     JPG,
     BMP,
+    ICO,
+    TIFF,
+    GIF,
+    TGA,
+}
+impl Default for SaveFormat {
+    /// Default save format
+    fn default() -> SaveFormat {
+        SaveFormat::PNG
+    }
 }
 
 #[derive(PartialEq, Clone, Serialize, Deserialize)]
@@ -26,27 +36,25 @@ pub struct Settings {
     pub auto_paste: bool,
     pub zoom_by: i32,
 }
-
-/***** Functions *****/
-/// A getter for default settings
-pub fn default_settings() -> Settings {
-    Settings {
-        anti_aliasing: true,
-        save_path: format!("/image.png"),
-        save_format: SaveFormat::PNG,
-        auto_paste: false,
-        zoom_by: 10,
+impl Default for Settings {
+    /// Default settings
+    fn default() -> Settings {
+        Settings {
+            anti_aliasing: true,
+            save_path: format!("/image.png"),
+            save_format: SaveFormat::default(),
+            auto_paste: false,
+            zoom_by: 10,
+        }
     }
 }
-
-/// Parse a settings JSON file into a Settings struct
-/// If parsing failed, this will return an error message as a String
-/// Otherwise, it'll return a Settings struct
-pub fn parse_settings(settings_text: String) -> Result<Settings, String> {
-    let parsed = match serde_json::from_str(&settings_text.as_str()) {
-        Ok(parsed) => parsed,
-        Err(e) => return Err(format!("Failed to parse the settings text: {}", e)),
-    };
-
-    Ok(parsed)
+impl Settings {
+    /// Parse a settings JSON file into a Settings struct
+    pub fn parse(settings_text: String) -> Result<Settings, String> {
+        let parsed = match serde_json::from_str(&settings_text.as_str()) {
+            Ok(parsed) => parsed,
+            Err(e) => return Err(format!("Failed to parse the settings text: {}", e)),
+        };
+        Ok(parsed)
+    }
 }

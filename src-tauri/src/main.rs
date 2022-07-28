@@ -13,30 +13,71 @@
 /* Imports */
 extern crate base64;
 use arboard::Clipboard;
-use image::{DynamicImage, ImageBuffer, ImageOutputFormat, RgbaImage};
+use image::{DynamicImage, ImageBuffer, ImageFormat, ImageOutputFormat, RgbaImage};
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{read_to_string, write},
     io::Cursor,
+    str::FromStr,
+    sync::RwLock,
 };
+use tauri::State;
 #[path = "../../shared/src/settings.rs"]
 mod settings;
 
-/***** Global image cursor *****/
-/* Yes, I'm aware that using a global isn't a good idea in most cases.
- * But a global seems useful for this case.
- * Reasoning: When the user wants to save the image, don't fetch it from the clipboard
- * again if it's already been fetched once. */
-static mut CLIPBOARD_PNG_IMAGE_CURSOR: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+/***** Global image data *****/
+#[derive(Default)]
+pub struct ImageDataState(pub RwLock<ImageData>);
+#[derive(Default)]
+pub struct ImageData {
+    /// The clipboard image encoded as a dynamic image
+    pub clipboard_dynamic_image: DynamicImage,
+    /// The image converted to whatever format the user selected
+    /// The vector must be wrapped in a cursor so it satisfies `Seek` and `Read` traits
+    pub clipboard_image_cursor: Cursor<Vec<u8>>,
+}
+impl ImageData {
+    /// Convert an image to the format specified
+    pub fn convert_encoded_cursor_with_format(
+        &mut self,
+        format: settings::SaveFormat,
+    ) -> Result<(), String> {
+        let format = ImageOutputFormat::from(
+            ImageFormat::from_extension((format).to_string().to_lowercase()).unwrap(),
+        );
+
+        // Clear cursor
+        self.clipboard_image_cursor.set_position(0);
+        self.clipboard_image_cursor.get_mut().clear();
+
+        // Write into cursor
+        match self
+            .clipboard_dynamic_image
+            .write_to(&mut self.clipboard_image_cursor, format)
+        {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(format!(
+                    "Failed to write dynamic image from clipboard into buffer: {}",
+                    e
+                ))
+            }
+        }
+
+        Ok(())
+    }
+}
 
 /***** Commands *****/
 /// Read the clipboard image information.
-/// If the clipboard read was successful and was an image, this will return
-/// a base64 encoded String with the image data (to be used in a data URL).
-/// If not, it will return an error message as a String.
 #[tauri::command]
-fn read_clipboard() -> Result<String, String> {
+fn read_clipboard(state: State<ImageDataState>) -> Result<String, String> {
+    let mut state_guard = match state.0.write() {
+        Ok(state_guard) => state_guard,
+        Err(_) => return Err(format!("Failed to get a state RwLockGuard")),
+    };
+
     // Get raw image data from clipboard
     let mut clipboard = match Clipboard::new() {
         Ok(clipboard) => clipboard,
@@ -57,47 +98,45 @@ fn read_clipboard() -> Result<String, String> {
         None => return Err("Failed to convert the raw bytes into an image buffer".to_string()),
     };
 
-    // Write the PNG encoded image data into a vector
-    // The vector must be wrapped in a cursor so it satisfies `Seek` and `Read` traits
-    let encoded_buf: Vec<u8>;
-    let image = DynamicImage::ImageRgba8(image_buf);
-    unsafe {
-        CLIPBOARD_PNG_IMAGE_CURSOR.set_position(0);
-        CLIPBOARD_PNG_IMAGE_CURSOR.get_mut().clear();
-        image
-            .write_to(&mut CLIPBOARD_PNG_IMAGE_CURSOR, ImageOutputFormat::Png) // TODO: different formats
-            .unwrap();
-        encoded_buf = CLIPBOARD_PNG_IMAGE_CURSOR.clone().into_inner();
-    }
-    // Convert to base64 to be used as a data URL (e.g. `data:png;base64,{base64_encoded}`)
-    let base64_encoded = base64::encode(encoded_buf);
+    // Write dynamic image to state
+    let dynamic_image = DynamicImage::ImageRgba8(image_buf);
+    state_guard.clipboard_dynamic_image = dynamic_image;
 
-    Ok(base64_encoded)
+    // Get encoded PNG cursor
+    match state_guard.convert_encoded_cursor_with_format(settings::SaveFormat::PNG) {
+        Ok(_) => (),
+        Err(e) => return Err(e),
+    };
+
+    Ok(base64::encode(state_guard.clipboard_image_cursor.get_ref()))
 }
 
-/// Save the image to a file
-/// If the save was successful, this command will return a Ok(()).
-/// Otherwise, it'll return the error as a String.
+/// Save the image to a file with a specified format
 #[tauri::command]
-fn save_image(path: String) -> Result<(), String> {
-    /* TODO: different file formats, right now it's PNG */
+fn save_image(state: State<ImageDataState>, path: String, format: String) -> Result<(), String> {
+    let mut state_guard = match state.0.write() {
+        Ok(state_guard) => state_guard,
+        Err(_) => return Err(format!("Failed to get a state RwLockGuard")),
+    };
 
-    // Get PNG image buffer
-    let buf: Vec<u8>;
-    unsafe {
-        buf = CLIPBOARD_PNG_IMAGE_CURSOR.clone().into_inner();
-    }
+    let format = settings::SaveFormat::from_str(format.as_str()).unwrap();
+
+    // Convert the buffer to the save format
+    match state_guard.convert_encoded_cursor_with_format(format) {
+        Ok(_) => (),
+        Err(e) => return Err(e),
+    };
 
     // Write to file
-    match write(&path, buf) {
-        Ok(_) => return Ok(()),
+    match write(&path, state_guard.clipboard_image_cursor.get_ref()) {
+        Ok(_) => (),
         Err(e) => return Err(format!("Failed to save image to {}: {}", path, e)),
     }
+
+    Ok(())
 }
 
-/// Read the settings file
-/// If the parsing was unsuccessful, this will return an error message as a String
-/// Otherwise, it'll return the JSON information of the settings as a String
+/// Read the settings file and return the text contents of it
 #[tauri::command]
 fn read_settings() -> Result<String, String> {
     let file_text = match read_to_string("../settings.json") {
@@ -109,8 +148,6 @@ fn read_settings() -> Result<String, String> {
 }
 
 /// Save settings
-/// If the saving was unsuccessful, this will return an error message as a String
-/// Otherwise, it'll return `()`
 #[tauri::command]
 fn save_settings(settings: String) -> Result<(), String> {
     match write("../settings.json", settings) {
@@ -128,6 +165,7 @@ fn main() {
         } else {
             tauri::Menu::default()
         })
+        .manage(ImageDataState(Default::default()))
         .invoke_handler(tauri::generate_handler![
             read_clipboard,
             save_image,
