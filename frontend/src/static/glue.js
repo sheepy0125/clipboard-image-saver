@@ -6,7 +6,6 @@
 /***** Setup *****/
 /* Imports */
 const invoke = window.__TAURI__.invoke;
-const dialog = window.__TAURI__.dialog;
 
 /***** Bridge functions *****/
 export async function invokeReadClipboard() {
@@ -18,11 +17,7 @@ export async function invokeSaveImage(path, format) {
 }
 
 export async function invokeGetSavePath(format) {
-	const format_filter = [{name: format.toUpperCase(), extensions: [format.toLowerCase()]}];
-	return dialog.save({
-		multiple: false,
-		filters: format_filter,
-	});
+	return invoke("get_save_path", {format: format});
 }
 
 export async function invokeReadSettings() {

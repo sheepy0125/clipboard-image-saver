@@ -19,10 +19,14 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs::{read_to_string, write},
     io::Cursor,
+    path::PathBuf,
     str::FromStr,
     sync::RwLock,
 };
-use tauri::State;
+use tauri::{
+    api::{dialog::blocking::FileDialogBuilder, path::picture_dir},
+    State,
+};
 #[path = "../../shared/src/settings.rs"]
 mod settings;
 
@@ -111,6 +115,26 @@ fn read_clipboard(state: State<ImageDataState>) -> Result<String, String> {
     Ok(base64::encode(state_guard.clipboard_image_cursor.get_ref()))
 }
 
+/// Get the path to save the image
+#[tauri::command]
+async fn get_save_path(format: String) -> Result<String, String> {
+    let directory = match picture_dir() {
+        Some(picture_dir) => picture_dir,
+        None => PathBuf::from("."),
+    };
+    let file = match FileDialogBuilder::new()
+        .set_title("Where would you like to save the image?")
+        .set_directory(directory)
+        .add_filter(format.to_uppercase(), &[format.to_lowercase().as_str()])
+        .save_file()
+    {
+        Some(file) => file.into_os_string().into_string().unwrap(),
+        None => return Err("User canceled save".to_string()),
+    };
+
+    Ok(file)
+}
+
 /// Save the image to a file with a specified format
 #[tauri::command]
 fn save_image(state: State<ImageDataState>, path: String, format: String) -> Result<(), String> {
@@ -171,6 +195,7 @@ fn main() {
             save_image,
             save_settings,
             read_settings,
+            get_save_path,
         ])
         .run(context)
         .expect("error while running tauri application");
