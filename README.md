@@ -6,18 +6,19 @@ Ever had an image in your clipboard that you wanted to save?
 
 Normally, one would need to open Paint or another image editing program, paste the image in, and save it.
 
-With this amazing program, one would be able to save an image with a simple Ctrl+V!
+With this amazing program, one would be able to save an image with a simple button click!
 
 # Features
 
 -   [x] Easy to use GUI that's mobile-first for some reason
 -   [x] Pasting images
 -   [x] Viewing pasted images
+-   [x] Dragging and zooming pasted images
 -   [x] Saving images
--   [ ] Configuring auto paste or pasting manually
+-   [x] Configuring auto paste or pasting manually
 -   [x] Configuring where images are saved
 -   [x] Configuring anti-aliasing
--   [ ] Configuring saving as different file formats
+-   [x] Configuring saving as different file formats
 -   [x] Transparency support
 -   [ ] Lightweight portable Linux application through an AppImage
 
@@ -53,7 +54,6 @@ cd ../..
 
 ```sh
 cd frontend
-# Yew needs the wasm-32-unknown-unknown target to work
 rustup target add wasm32-unknown-unknown
 cd ..
 ```
@@ -67,8 +67,7 @@ cargo install tauri-cli
 ## Running
 
 ```sh
-cargo tauri dev
-# cargo tauri dev --release  # Improves performance (especially for reading the clipboard!), but slower compilation times
+cargo tauri dev --release
 ```
 
 # License
