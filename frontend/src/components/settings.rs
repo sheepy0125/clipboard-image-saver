@@ -127,6 +127,21 @@ pub fn settings(props: &SettingsProps) -> Html {
             settings.save_format.clone(),
         )
     };
+    // Same thing with the zoom by slider
+    let zoom_by_slider_ref = use_node_ref();
+    {
+        let zoom_by_slider_ref = zoom_by_slider_ref.clone();
+        let zoom_by = settings.zoom_by.clone();
+        use_effect_with_deps(
+            move |_| {
+                if let Some(element) = zoom_by_slider_ref.cast::<HtmlInputElement>() {
+                    element.set_value(format!("{}", zoom_by).as_str())
+                }
+                || {}
+            },
+            settings.save_format.clone(),
+        )
+    };
 
     // Zoom by range changed
     let zoom_by_range = {
@@ -239,8 +254,16 @@ pub fn settings(props: &SettingsProps) -> Html {
                 </select>
                 // Zoom by
                 <underline_text::UnderlineText>{ "Zoom by" }</underline_text::UnderlineText>
-                <p>{ format!("{}%", settings.zoom_by) }</p>
-                <input oninput={ zoom_by_range } type="range" min=1 max=100 />
+                <p>{
+                    format!(
+                        "{}%",
+                        match zoom_by_slider_ref.cast::<HtmlInputElement>() {
+                            Some(element) => element.value(),
+                            None => settings.zoom_by.to_string()
+                        }
+                    )
+                }</p>
+                <input oninput={ zoom_by_range } ref={ zoom_by_slider_ref } type="range" min=1 max=100 />
             </div>
 
             // Controls
