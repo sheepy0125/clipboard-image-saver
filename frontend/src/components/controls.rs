@@ -12,6 +12,8 @@ use web_sys::window;
 use yew::prelude::*;
 #[path = "./widget.rs"]
 mod widget;
+#[path = "./control_button.rs"]
+mod control_button;
 
 /***** Glue *****/
 #[wasm_bindgen(module = "/src/static/glue.js")]
@@ -62,13 +64,13 @@ pub fn controls(props: &ControlsProps) -> Html {
             <p class="text-2xl">{ "Controls" }</p>
             <div class="flex flex-initial gap-2 my-2 w-full">
                 // Refresh
-                <button onclick={ on_update_clipboard } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                <control_button::ControlButton onclick={ on_update_clipboard }>
                     { "Refresh clipboard" }
-                </button>
+                </control_button::ControlButton>
                 // Save
-                <button onclick={ on_save_image } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                <control_button::ControlButton onclick={ on_save_image }>
                     { "Save image" }
-                </button>
+                </control_button::ControlButton>
             </div>
         </widget::Widget>
 

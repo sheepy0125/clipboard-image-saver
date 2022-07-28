@@ -10,10 +10,10 @@ use std::{path::PathBuf, str::FromStr};
 use strum::IntoEnumIterator;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{window, HtmlElement, HtmlInputElement, HtmlSelectElement};
+use web_sys::{window, HtmlInputElement, HtmlSelectElement};
 use yew::{prelude::*, use_context};
-#[path = "./underline_text.rs"]
-mod underline_text;
+#[path = "./control_button.rs"]
+mod control_button;
 #[path = "./widget.rs"]
 mod widget;
 
@@ -26,6 +26,20 @@ extern "C" {
     pub async fn load_settings_glue() -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = invokeSaveSettings, catch)]
     pub async fn save_settings_glue(settings_text: String) -> Result<JsValue, JsValue>;
+}
+
+/***** Underline text component *****/
+#[derive(Properties, PartialEq)]
+pub struct UnderlineTextProps {
+    pub children: Children,
+}
+#[function_component(UnderlineText)]
+pub fn underline_text(props: &UnderlineTextProps) -> Html {
+    let children = props.children.clone();
+
+    html! {
+        <p class="text-lg underline text-decoration-black decoration-double">{ children }</p>
+    }
 }
 
 /***** Settings component *****/
@@ -204,7 +218,7 @@ pub fn settings(props: &SettingsProps) -> Html {
             <div class="flex-1">
                 <p class="text-2xl">{ "Settings" }</p>
                 // Anti-aliasing
-                <underline_text::UnderlineText>{ "Anti-aliasing" }</underline_text::UnderlineText>
+                <UnderlineText>{ "Anti-aliasing" }</UnderlineText>
                 <label>
                     <input
                         onchange={ on_anti_aliased_changed.clone() }
@@ -223,7 +237,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                     { " Disabled" }
                 </label>
                 // Auto paste
-                <underline_text::UnderlineText>{ "Auto paste" }</underline_text::UnderlineText>
+                <UnderlineText>{ "Auto paste" }</UnderlineText>
                 <label>
                     <input
                         onchange={ on_auto_paste_changed.clone() }
@@ -242,7 +256,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                     { " Disabled" }
                 </label>
                 // Save path
-                <underline_text::UnderlineText>{ "Save to" }</underline_text::UnderlineText>
+                <UnderlineText>{ "Save to" }</UnderlineText>
                 <p>{ settings.save_path }</p>
                 <button
                     onclick={ on_get_save_path }
@@ -251,7 +265,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                     { "Browse" }
                 </button>
                 // Save format
-                <underline_text::UnderlineText>{ "Save format" }</underline_text::UnderlineText>
+                <UnderlineText>{ "Save format" }</UnderlineText>
                 <select
                     class="text-sm text-black"
                     onchange={ on_save_format_change.clone() }
@@ -273,7 +287,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                     }
                 </select>
                 // Zoom by
-                <underline_text::UnderlineText>{ "Zoom by" }</underline_text::UnderlineText>
+                <UnderlineText>{ "Zoom by" }</UnderlineText>
                 <p>{ format!("{}%", settings.zoom_by.to_string()) }</p>
                 <input oninput={ zoom_by_range } ref={ zoom_by_slider_ref } type="range" min=1 max=100 />
             </div>
@@ -281,17 +295,17 @@ pub fn settings(props: &SettingsProps) -> Html {
             // Controls
             <div class="flex flex-initial gap-2 my-2 w-full">
                 // Reset
-                <button onclick={ on_reset } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                <control_button::ControlButton onclick={ on_reset }>
                     { "Reset" }
-                </button>
+                </control_button::ControlButton>
                 // Load
-                <button onclick={ on_load } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                <control_button::ControlButton onclick={ on_load }>
                     { "Load" }
-                </button>
+                </control_button::ControlButton>
                 // Save
-                <button onclick={ on_save } class="p-2 w-full bg-blue-800 rounded-md hover:bg-blue-700">
+                <control_button::ControlButton onclick={ on_save }>
                     { "Save" }
-                </button>
+                </control_button::ControlButton>
             </div>
         </widget::Widget>
     }

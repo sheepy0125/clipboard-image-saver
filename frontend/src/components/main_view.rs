@@ -71,7 +71,7 @@ pub fn main_view() -> Html {
                     </div>
                 </div>
                 // Collapse
-                <button onclick={on_collapsed_toggle_click} class="ml-2 text-white">
+                <button onclick={ on_collapsed_toggle_click } class="ml-2 text-white">
                     {
                         match *right_side_collapsed_state {
                             true => ">",
