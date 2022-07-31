@@ -9,6 +9,7 @@
     windows_subsystem = "windows"
 )]
 #![feature(const_io_structs)]
+#![allow(clippy::significant_drop_in_scrutinee)]
 
 /* Imports */
 extern crate base64;
@@ -27,7 +28,7 @@ use tauri::{
     api::{dialog::blocking::FileDialogBuilder, path::picture_dir},
     State,
 };
-#[path = "../../shared/src/settings.rs"]
+#[path = "../../shared/settings.rs"]
 mod settings;
 
 /***** Globals *****/
@@ -81,7 +82,7 @@ impl ImageData {
 fn read_clipboard(state: State<ImageDataState>) -> Result<String, String> {
     let mut state_guard = match state.0.write() {
         Ok(state_guard) => state_guard,
-        Err(_) => return Err(format!("Failed to get a state RwLockGuard")),
+        Err(e) => return Err(format!("Failed to get a state RwLockGuard: {}", e)),
     };
 
     // Get raw image data from clipboard
@@ -109,7 +110,7 @@ fn read_clipboard(state: State<ImageDataState>) -> Result<String, String> {
     state_guard.clipboard_dynamic_image = dynamic_image;
 
     // Get encoded PNG cursor
-    match state_guard.convert_encoded_cursor_with_format(settings::SaveFormat::PNG) {
+    match state_guard.convert_encoded_cursor_with_format(settings::SaveFormat::Png) {
         Ok(_) => (),
         Err(e) => return Err(e),
     };
@@ -142,7 +143,7 @@ async fn get_save_path(format: String) -> Result<String, String> {
 fn save_image(state: State<ImageDataState>, path: String, format: String) -> Result<(), String> {
     let mut state_guard = match state.0.write() {
         Ok(state_guard) => state_guard,
-        Err(_) => return Err(format!("Failed to get a state RwLockGuard")),
+        Err(e) => return Err(format!("Failed to get a state RwLockGuard: {}", e)),
     };
 
     let format = settings::SaveFormat::from_str(format.as_str()).unwrap();
@@ -177,8 +178,8 @@ fn load_settings() -> Result<String, String> {
 #[tauri::command]
 fn save_settings(settings: String) -> Result<(), String> {
     match write(SETTINGS_PATH, settings) {
-        Ok(_) => return Ok(()),
-        Err(e) => return Err(format!("Failed to save settings: {}", e)),
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to save settings: {}", e)),
     }
 }
 

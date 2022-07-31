@@ -4,8 +4,8 @@
  */
 
 /***** Setup *****/
+#![allow(clippy::derive_partial_eq_without_eq)]
 /* Imports */
-use yew::prelude::*;
 #[path = "./components/main_view.rs"]
 mod main_view;
 
@@ -13,15 +13,7 @@ mod main_view;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-/***** App *****/
-#[function_component(App)]
-pub fn app() -> Html {
-    html! {
-        <main_view::MainView />
-    }
-}
-
 /***** Main *****/
 fn main() {
-    yew::start_app::<App>();
+    yew::start_app::<main_view::MainView>();
 }

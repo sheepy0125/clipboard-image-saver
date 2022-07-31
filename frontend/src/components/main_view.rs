@@ -5,14 +5,13 @@
 
 /***** Setup *****/
 /* Imports */
-#[allow(unused_imports)]
-use serde::{Deserialize, Serialize};
+#![allow(clippy::duplicate_mod)]
 use yew::{prelude::*, ContextProvider};
 #[path = "./clipboard_image.rs"]
 mod clipboard_image;
 #[path = "./controls.rs"]
 mod controls;
-#[path = "../../../shared/src/settings.rs"]
+#[path = "../../../shared/settings.rs"]
 pub mod global_settings;
 #[path = "./settings.rs"]
 mod settings;
@@ -21,7 +20,7 @@ mod settings;
 #[function_component(MainView)]
 pub fn main_view() -> Html {
     // Settings
-    let settings_state = use_state(|| global_settings::Settings::default());
+    let settings_state = use_state(global_settings::Settings::default);
     let on_update_settings = {
         let settings_state = settings_state.clone();
         Callback::from(move |new_settings: global_settings::Settings| {

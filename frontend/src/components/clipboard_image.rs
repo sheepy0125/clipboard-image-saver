@@ -28,16 +28,6 @@ struct ImageDisplayProps {
 }
 #[function_component(ImageDisplay)]
 fn image_display(props: &ImageDisplayProps) -> Html {
-    // Debug render count
-    let render_count = use_mut_ref(|| 0);
-    {
-        let render_count = render_count.clone();
-        use_effect(move || {
-            *render_count.borrow_mut() += 1;
-            || ()
-        });
-    }
-
     // Settings
     let settings =
         use_context::<global_settings::Settings>().expect("Could not find settings context");
@@ -49,7 +39,7 @@ fn image_display(props: &ImageDisplayProps) -> Html {
     let image_ref = use_node_ref();
     let image_ref_element = image_ref
         .cast::<HtmlImageElement>()
-        .unwrap_or(HtmlImageElement::new().unwrap());
+        .unwrap_or_else(|| HtmlImageElement::new().unwrap());
 
     // Dragging
     // The position of the cursor
@@ -90,9 +80,7 @@ fn image_display(props: &ImageDisplayProps) -> Html {
         })
     };
     let dragging = {
-        let cursor_pos_ref = cursor_pos_ref.clone();
         let display_image_pos_ref = display_image_pos_ref.clone();
-        let start_dragging_pos_ref = start_dragging_pos_ref.clone();
         let dragging_ref = dragging_ref.clone();
         let dragging_style_update = dragging_style_update.clone();
         Callback::from(move |event: MouseEvent| {
@@ -124,17 +112,13 @@ fn image_display(props: &ImageDisplayProps) -> Html {
             dragging_style_update();
         })
     };
-    let stop_dragging = {
-        let dragging_ref = dragging_ref.clone();
-        Callback::from(move |_| {
-            *dragging_ref.borrow_mut() = false;
-        })
-    };
+    let stop_dragging = Callback::from(move |_| {
+        *dragging_ref.borrow_mut() = false;
+    });
 
     // Zooming
     let image_size_percent_ref = use_mut_ref(|| 100);
     let zoom_style_update = {
-        let image_ref_element = image_ref_element.clone();
         let image_size_percent_ref = image_size_percent_ref.clone();
         move || {
             let style = image_ref_element.style();
@@ -168,8 +152,6 @@ fn image_display(props: &ImageDisplayProps) -> Html {
         })
     };
     let on_zoom_reset = {
-        let image_size_percent_ref = image_size_percent_ref.clone();
-        let display_image_pos_ref = display_image_pos_ref.clone();
         let zoom_style_update = zoom_style_update.clone();
         // Resetting the zoom will also reset the position
         let dragging_style_update = dragging_style_update.clone();
@@ -190,10 +172,8 @@ fn image_display(props: &ImageDisplayProps) -> Html {
     }
 
     // If there was a rerender, the image style may not be updated properly
-    // So update it
+    // So update it!
     use_effect({
-        let dragging_style_update = dragging_style_update.clone();
-        let zoom_style_update = zoom_style_update.clone();
         move || {
             zoom_style_update();
             dragging_style_update();
@@ -212,29 +192,24 @@ fn image_display(props: &ImageDisplayProps) -> Html {
             onmousemove={ dragging }
             onmouseup={ stop_dragging }
         >
-            // DEBUG
-            // <p>{ format!("Number of renders: {}", *render_count.borrow()) }</p>
             <div class="w-full">
-            <div class="w-max">
-                <img
-                    onmousedown={ start_dragging }
-                    ref={ image_ref }
-                    alt="Image from clipboard"
-                    id="clipboard-image"
-                    draggable="false"
-                    class="relative border-2 border-white border-opacity-20 cursor-move"
-                    src={ props.data_url.clone() }
-                    style={
-                        format!(
-                            "{}",
-                            match anti_aliasing {
+                <div class="w-max">
+                    <img
+                        onmousedown={ start_dragging }
+                        ref={ image_ref }
+                        alt="Image from clipboard"
+                        id="clipboard-image"
+                        draggable="false"
+                        class="relative border-2 border-white border-opacity-20 cursor-move"
+                        src={ props.data_url.clone() }
+                        style={
+                            (match anti_aliasing {
                                 true => "",
                                 false => "image-rendering: pixelated; image-rendering: crisp-edges;",
-                            }
-                        )
-                    }
-                />
-            </div>
+                            }).to_string()
+                        }
+                    />
+                </div>
             </div>
             <div class="flex absolute bottom-0 left-0 m-4">
                 // https://heroicons.com/
@@ -315,7 +290,7 @@ pub fn clipboard_image(props: &ClipboardImageProps) -> Html {
                 }
                 || ()
             },
-            (settings.auto_paste.clone(), should_update_clipboard),
+            (settings.auto_paste, should_update_clipboard),
         )
     }
 

@@ -135,7 +135,7 @@ pub fn settings(props: &SettingsProps) -> Html {
         use_effect_with_deps(
             move |selection| {
                 if let Some(element) = save_format_select_ref.cast::<HtmlSelectElement>() {
-                    let format_string = selection.to_string();
+                    let format_string = selection.to_string().to_uppercase();
                     element.set_value(format_string.as_str())
                 }
                 || {}
@@ -147,7 +147,7 @@ pub fn settings(props: &SettingsProps) -> Html {
     let zoom_by_slider_ref = use_node_ref();
     {
         let zoom_by_slider_ref = zoom_by_slider_ref.clone();
-        let zoom_by = settings.zoom_by.clone();
+        let zoom_by = settings.zoom_by;
         use_effect_with_deps(
             move |_| {
                 if let Some(element) = zoom_by_slider_ref.cast::<HtmlInputElement>() {
@@ -155,7 +155,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                 }
                 || {}
             },
-            settings.zoom_by.clone(),
+            settings.zoom_by,
         )
     };
 
@@ -165,11 +165,8 @@ pub fn settings(props: &SettingsProps) -> Html {
         let on_update_settings = on_update_settings.clone();
         Callback::from(move |event: InputEvent| {
             let zoom_by = match event.target_dyn_into::<HtmlInputElement>() {
-                Some(input) => input
-                    .value()
-                    .parse::<i32>()
-                    .unwrap_or_else(|_| settings.zoom_by.clone()),
-                None => settings.zoom_by.clone(),
+                Some(input) => input.value().parse::<i32>().unwrap_or(settings.zoom_by),
+                None => settings.zoom_by,
             };
             let mut new_settings = settings.clone();
             new_settings.zoom_by = zoom_by;
@@ -188,7 +185,7 @@ pub fn settings(props: &SettingsProps) -> Html {
         let on_update_settings = on_update_settings.clone();
         use_effect_with_deps(
             move |_| {
-                load_settings(on_update_settings.clone());
+                load_settings(on_update_settings);
                 || ()
             },
             (),
@@ -206,7 +203,6 @@ pub fn settings(props: &SettingsProps) -> Html {
     // Reset
     let on_reset = {
         let default_settings = global_settings::Settings::default();
-        let on_update_settings = on_update_settings.clone();
         Callback::from(move |_| {
             on_update_settings.emit(default_settings.clone());
         })
@@ -273,7 +269,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                 >
                     {
                         global_settings::SaveFormat::iter().map(|format| {
-                            let string_format = format.to_string();
+                            let string_format = format.to_string().to_uppercase();
                             html! {
                                 <option
                                     key={ string_format.clone() }
@@ -288,7 +284,7 @@ pub fn settings(props: &SettingsProps) -> Html {
                 </select>
                 // Zoom by
                 <UnderlineText>{ "Zoom by" }</UnderlineText>
-                <p>{ format!("{}%", settings.zoom_by.to_string()) }</p>
+                <p>{ format!("{}%", settings.zoom_by) }</p>
                 <input oninput={ zoom_by_range } ref={ zoom_by_slider_ref } type="range" min=1 max=100 />
             </div>
 
@@ -323,16 +319,14 @@ fn get_image_save_path(
         match get_save_path_glue(save_format).await {
             Ok(save_path) => {
                 let mut new_settings = settings.clone();
-                new_settings.save_path = save_path
-                    .as_string()
-                    .unwrap_or_else(|| new_settings.save_path);
+                new_settings.save_path = save_path.as_string().unwrap_or(new_settings.save_path);
                 on_update_settings.emit(new_settings);
             }
             Err(e) => {
                 window()
                     .unwrap()
                     .alert_with_message(&e.as_string().unwrap_or_else(|| {
-                        format!("Failed to get the save path, but no reason was provided")
+                        "Failed to get the save path, but no reason was provided".to_string()
                     }))
                     .unwrap();
             }
@@ -355,7 +349,7 @@ fn load_settings(on_update_settings: Callback<global_settings::Settings>) {
         };
         match global_settings::Settings::parse(settings_text) {
             Ok(new_settings) => on_update_settings.emit(new_settings),
-            Err(e) => window().unwrap().alert_with_message(&e.as_str()).unwrap(),
+            Err(e) => window().unwrap().alert_with_message(e.as_str()).unwrap(),
         }
     })
 }

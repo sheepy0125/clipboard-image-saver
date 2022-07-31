@@ -1,0 +1,20 @@
+{
+	"rust-analyzer.diagnostics.disabled": ["unresolved-module", "missing-unsafe"],
+	"cSpell.words": [
+		"arboard",
+		"bindgen",
+		"linecap",
+		"linejoin",
+		"mouseup",
+		"onchange",
+		"onclick",
+		"oninput",
+		"onmousedown",
+		"onmousemove",
+		"onmouseup",
+		"pixelated",
+		"scrutinee",
+		"tauri"
+	],
+	"rust-analyzer.checkOnSave.command": "clippy"
+}

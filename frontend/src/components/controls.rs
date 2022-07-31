@@ -10,10 +10,10 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 use yew::prelude::*;
-#[path = "./widget.rs"]
-mod widget;
 #[path = "./control_button.rs"]
 mod control_button;
+#[path = "./widget.rs"]
+mod widget;
 
 /***** Glue *****/
 #[wasm_bindgen(module = "/src/static/glue.js")]
@@ -36,7 +36,6 @@ pub fn controls(props: &ControlsProps) -> Html {
     // Save image
     let save_image_path = settings.save_path;
     let on_save_image = {
-        let save_format = settings.save_format.clone();
         match &save_image_path.is_empty() {
             true => Callback::from(move |_| {
                 window()
@@ -45,7 +44,7 @@ pub fn controls(props: &ControlsProps) -> Html {
                     .unwrap()
             }),
             false => Callback::from(move |_| {
-                save_clipboard_image(save_image_path.clone(), save_format.to_string())
+                save_clipboard_image(save_image_path.clone(), settings.save_format.to_string())
             }),
         }
     };
@@ -53,7 +52,7 @@ pub fn controls(props: &ControlsProps) -> Html {
     // Update clipboard
     let on_should_update_clipboard = props.on_should_update_clipboard.clone();
     let on_update_clipboard = {
-        let on_update_clipboard = on_should_update_clipboard.clone();
+        let on_update_clipboard = on_should_update_clipboard;
         Callback::from(move |_| {
             on_update_clipboard.emit(true);
         })
@@ -84,7 +83,7 @@ fn save_clipboard_image(path: String, format: String) {
             Ok(_) => {
                 window()
                     .unwrap()
-                    .alert_with_message(&format!("Saved clipboard image to {}", path).as_str())
+                    .alert_with_message(format!("Saved clipboard image to {}", path).as_str())
                     .unwrap();
             }
             Err(e) => {

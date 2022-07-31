@@ -49,11 +49,11 @@
 		},
 		"windows": [
 			{
-				"fullscreen": false,
+				"width": 1200,
 				"height": 800,
+				"fullscreen": false,
 				"resizable": true,
-				"title": "Clipboard Image Saver",
-				"width": 1200
+				"title": "Clipboard Image Saver"
 			}
 		]
 	}
