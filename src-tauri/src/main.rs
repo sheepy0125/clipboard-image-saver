@@ -18,22 +18,23 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, ImageOutputFormat, RgbaImage
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::{read_to_string, write},
-    io::Cursor,
+    fs::{create_dir_all, read_to_string, write},
+    io::{Cursor, ErrorKind},
     path::PathBuf,
     str::FromStr,
     sync::RwLock,
 };
 use tauri::{
-    api::{dialog::blocking::FileDialogBuilder, path::picture_dir},
+    api::{
+        dialog::blocking::FileDialogBuilder,
+        path::{local_data_dir, picture_dir},
+    },
     State,
 };
 #[path = "../../shared/settings.rs"]
 mod settings;
 
 /***** Globals *****/
-static SETTINGS_PATH: &str = "../settings.json";
-
 #[derive(Default)]
 pub struct ImageDataState(pub RwLock<ImageData>);
 #[derive(Default)]
@@ -73,6 +74,15 @@ impl ImageData {
         }
 
         Ok(())
+    }
+}
+
+/***** Auxiliary functions *****/
+/// Get the settings path
+fn get_settings_path() -> PathBuf {
+    match local_data_dir() {
+        Some(local_data_dir) => local_data_dir.join("clipboard-image-saver/settings.json"),
+        None => PathBuf::from("settings.json"),
     }
 }
 
@@ -164,11 +174,15 @@ fn save_image(state: State<ImageDataState>, path: String, format: String) -> Res
 }
 
 /// Load the settings file and return the text contents of it
+/// If the file wasn't found, it'll return the String "NotFound"
 #[tauri::command]
 fn load_settings() -> Result<String, String> {
-    let file_text = match read_to_string(SETTINGS_PATH) {
+    let file_text = match read_to_string(get_settings_path()) {
         Ok(file_text) => file_text,
-        Err(e) => return Err(format!("Failed to load settings file: {}", e)),
+        Err(e) => match e {
+            _ if e.kind() == ErrorKind::NotFound => return Err("NotFound".to_string()),
+            _ => return Err(format!("Failed to load settings file: {}", e)),
+        },
     };
 
     Ok(file_text)
@@ -176,9 +190,21 @@ fn load_settings() -> Result<String, String> {
 
 /// Save settings
 #[tauri::command]
-fn save_settings(settings: String) -> Result<(), String> {
-    match write(SETTINGS_PATH, settings) {
-        Ok(_) => Ok(()),
+fn save_settings(settings: String) -> Result<String, String> {
+    let settings_path = get_settings_path();
+    let settings_parent_dir_path = match settings_path.parent() {
+        Some(parent_dir_path) => parent_dir_path,
+        None => return Err("Settings path has no parent directory, what?".to_string()),
+    };
+
+    // Create directory path (won't do anything if already created)
+    match create_dir_all(settings_parent_dir_path) {
+        Ok(_) => (),
+        Err(e) => return Err(format!("Failed to create the settings directory: {}", e)),
+    };
+
+    match write(&settings_path, settings) {
+        Ok(_) => Ok(settings_path.to_str().unwrap_or_default().to_string()),
         Err(e) => Err(format!("Failed to save settings: {}", e)),
     }
 }

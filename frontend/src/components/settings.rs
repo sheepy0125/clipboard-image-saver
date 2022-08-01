@@ -340,10 +340,15 @@ fn load_settings(on_update_settings: Callback<global_settings::Settings>) {
         let settings_text = match load_settings_glue().await {
             Ok(settings_text) => settings_text.as_string().unwrap(),
             Err(e) => {
-                window()
-                    .unwrap()
-                    .alert_with_message(&e.as_string().unwrap())
-                    .unwrap();
+                let error_message = &e.as_string().unwrap();
+                let error_message = error_message.as_str();
+
+                // If it was a FileNotFound error, it'll return "NotFound"
+                // Don't display those
+                match error_message {
+                    "NotFound" => (),
+                    _ => window().unwrap().alert_with_message(error_message).unwrap(),
+                };
                 return;
             }
         };
@@ -370,9 +375,11 @@ fn save_settings(settings: global_settings::Settings) -> Result<(), ()> {
 
     spawn_local(async move {
         match save_settings_glue(serialized_data).await {
-            Ok(_) => window()
+            Ok(settings_path) => window()
                 .unwrap()
-                .alert_with_message("Saved settings")
+                .alert_with_message(
+                    format!("Saved settings to {}", settings_path.as_string().unwrap()).as_str(),
+                )
                 .unwrap(),
             Err(e) => window()
                 .unwrap()
