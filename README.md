@@ -20,7 +20,7 @@ With this amazing program, one would be able to save an image with a simple butt
 -   [x] Configuring anti-aliasing
 -   [x] Configuring saving as different file formats
 -   [x] Transparency support
--   [ ] Lightweight portable Linux application through an AppImage
+-   [x] Lightweight portable Linux application through an AppImage
 
 # Building
 
@@ -42,6 +42,7 @@ source $HOME/.cargo/env
 ### TailwindCSS
 
 ```sh
+# In the project root
 yay -S --needed docker docker-compose # Installs Docker
 sudo systemctl enable --now docker    # Starts Docker on startup. To only run once, use `sudo systemctl start docker` instead
 # sudo dockerd & disown               # If you're running another init system besides Systemd, try this
@@ -53,6 +54,7 @@ cd ../..
 ### Yew
 
 ```sh
+# In the project root
 cd frontend
 rustup target add wasm32-unknown-unknown
 cd ..
@@ -61,13 +63,29 @@ cd ..
 ### Tauri
 
 ```sh
+# In the project root
 cargo install tauri-cli
+```
+
+## Checking code
+
+```sh
+# In the project root
+./check.sh
 ```
 
 ## Running
 
 ```sh
+# In the project root
 cargo tauri dev --release
+```
+
+## Building
+
+```sh
+# In the project root
+./build.sh
 ```
 
 # License

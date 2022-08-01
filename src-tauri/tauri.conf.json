@@ -3,12 +3,12 @@
 		"distDir": "../frontend/dist",
 		"devPath": "http://localhost:8080",
 		"beforeDevCommand": "cd frontend && trunk serve --release",
-		"beforeBuildCommand": "cd frontend && trunk build",
+		"beforeBuildCommand": "cd frontend && trunk build --release",
 		"withGlobalTauri": true
 	},
 	"package": {
 		"productName": "clipboard-image-saver",
-		"version": "0.1.0"
+		"version": "1.0.0"
 	},
 	"tauri": {
 		"allowlist": {
@@ -23,7 +23,7 @@
 			},
 			"externalBin": [],
 			"icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
-			"identifier": "com.tauri.dev",
+			"identifier": "com.clipboard-image-saver.dev",
 			"longDescription": "",
 			"macOS": {
 				"entitlements": null,
