@@ -104,25 +104,37 @@ pub fn settings(props: &SettingsProps) -> Html {
     };
 
     // Image save format
+    let update_file_extension = |save_path: String, extension: String| {
+        let mut save_path_buf = PathBuf::from(save_path);
+        save_path_buf.set_extension(extension);
+        save_path_buf.to_string_lossy().to_string()
+    };
+
     let on_save_format_change = {
         let settings = settings.clone();
         let on_update_settings = on_update_settings.clone();
 
         Callback::from(move |event: Event| {
             let save_format = match event.target_dyn_into::<HtmlSelectElement>() {
-                Some(input) => global_settings::SaveFormat::from_str(input.value().as_str())
-                    .unwrap_or_else(|_| settings.save_format.clone()),
+                Some(input) => {
+                    // The save format text that we get will be all uppercase, but we need
+                    // that in "sentence case" (e.g. "ICO" -> "Ico") so we can convert it to
+                    // an enum type
+                    global_settings::SaveFormat::from_str({
+                        let mut input_value: String = input.value();
+                        input_value.get_mut(1..).unwrap().make_ascii_lowercase();
+                        input_value.clone().as_str()
+                    })
+                    .unwrap_or_else(|_| settings.save_format.clone())
+                }
                 None => settings.save_format.clone(),
             };
             let mut new_settings = settings.clone();
+            new_settings.save_path = update_file_extension(
+                new_settings.save_path,
+                save_format.to_string().to_lowercase(),
+            );
             new_settings.save_format = save_format;
-
-            // Also update the file extension for the save path
-            let extension = new_settings.save_format.to_string().to_lowercase();
-            let mut save_path_buf = PathBuf::from(&new_settings.save_path);
-            save_path_buf.set_extension(extension);
-            new_settings.save_path = save_path_buf.to_string_lossy().to_string();
-
             on_update_settings.emit(new_settings);
         })
     };
@@ -132,15 +144,30 @@ pub fn settings(props: &SettingsProps) -> Html {
     let save_format_select_ref = use_node_ref();
     {
         let save_format_select_ref = save_format_select_ref.clone();
+        let save_format_dependent = settings.save_format.clone();
+        let settings = settings.clone();
+        let on_update_settings = on_update_settings.clone();
         use_effect_with_deps(
             move |selection| {
-                if let Some(element) = save_format_select_ref.cast::<HtmlSelectElement>() {
-                    let format_string = selection.to_string().to_uppercase();
-                    element.set_value(format_string.as_str())
-                }
+                let save_format_string;
+                match save_format_select_ref.cast::<HtmlSelectElement>() {
+                    Some(element) => {
+                        save_format_string = selection.to_string().to_uppercase();
+                        element.set_value(save_format_string.as_str())
+                    }
+                    None => save_format_string = "".to_string(),
+                };
+
+                // Update save to extension
+                let mut new_settings = settings.clone();
+                new_settings.save_path = update_file_extension(
+                    new_settings.save_path,
+                    save_format_string.to_lowercase(),
+                );
+                on_update_settings.emit(new_settings);
                 || {}
             },
-            settings.save_format.clone(),
+            save_format_dependent,
         )
     };
     // Same thing with the zoom by slider
