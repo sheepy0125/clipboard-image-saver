@@ -90,5 +90,5 @@ cargo tauri dev --release
 
 # License
 
-This program is licensed under the MIT license. See `COPYING` for details.
+This program is licensed under the MIT license. See `COPYING` for details.  
 Chicken
